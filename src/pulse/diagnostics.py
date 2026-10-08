@@ -13,7 +13,13 @@ def checks():
     from pulse.platforms import is_windows
     if is_windows():
         add('Platform', 'ok', 'Windows: floating island and local task events')
-        add('Desktop integrations', 'info', 'Windows notification capture, music, and volume are not implemented in this preview')
+        try:
+            import winrt.windows.media.control
+            import winrt.windows.storage.streams
+            add('Music', 'ok', 'Windows media bindings installed; player discovery starts with the island')
+        except ImportError:
+            add('Music', 'warning', 'Windows media bindings missing; rerun install-windows.cmd')
+        add('Desktop integrations', 'info', 'Windows notification capture and volume are not implemented in this preview')
         try:
             from PySide6.QtCore import qVersion
             add('Qt', 'ok', qVersion())

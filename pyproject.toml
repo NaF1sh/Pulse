@@ -3,13 +3,21 @@ requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 [project]
 name = "pulse-island"
-version = "0.2.0a1"
+version = "0.2.0a2"
 description = "A floating desktop island for tasks, agents, and Linux notifications"
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE", "ASSET_NOTICE.md"]
 requires-python = ">=3.12"
-dependencies = ["PySide6>=6.9,<7", "pydantic>=2.12,<3"]
+dependencies = [
+    "PySide6>=6.9,<7", "pydantic>=2.12,<3",
+    "winrt-runtime>=3.2,<4; sys_platform == 'win32'",
+    "winrt-Windows.Foundation>=3.2,<4; sys_platform == 'win32'",
+    "winrt-Windows.Foundation.Collections>=3.2,<4; sys_platform == 'win32'",
+    "winrt-Windows.Media>=3.2,<4; sys_platform == 'win32'",
+    "winrt-Windows.Media.Control>=3.2,<4; sys_platform == 'win32'",
+    "winrt-Windows.Storage.Streams>=3.2,<4; sys_platform == 'win32'",
+]
 [project.optional-dependencies]
 dev = ["pytest>=8", "pytest-qt>=4"]
 notifications = ["qasync>=0.27", "dbus-fast>=2"]

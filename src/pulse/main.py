@@ -35,7 +35,7 @@ def main(argv=None):
     sources.add_argument("--demo", action="store_true", help="play scripted fake notifications")
     sources.add_argument("--observe", action="store_true", help="mirror desktop notifications without owning the bus")
     parser.add_argument("--music", action=argparse.BooleanOptionalAction, default=None,
-                        help="watch MPRIS music changes (enabled with --observe)")
+                        help="watch music (enabled by default on Windows, or with --observe on Linux)")
     parser.add_argument("--volume", action=argparse.BooleanOptionalAction, default=None,
                         help="watch output volume changes (enabled with --observe)")
     parser.add_argument("--tasks", action=argparse.BooleanOptionalAction, default=True,
@@ -63,8 +63,8 @@ def main(argv=None):
     if args.doctor:
         from pulse.diagnostics import report
         return report()
-    if is_windows() and (args.observe or args.music or args.volume):
-        parser.error('Desktop notification, music, and volume sources are Linux-only in this preview. On Windows, launch Pulse without these flags for the island and task events.')
+    if is_windows() and (args.observe or args.volume):
+        parser.error('Desktop notification and volume sources are Linux-only in this preview. On Windows, launch Pulse without these flags for the island and task events.')
     if args.backend == 'windows' and not is_windows():
         parser.error('--backend windows requires Windows')
     if is_windows() and args.backend in ('xcb', 'layer-shell'):
@@ -241,13 +241,17 @@ def main(argv=None):
                               else 'Not saved in this session')
     preferences.source_status('Window system', f'{backend} · Qt {qVersion()}')
     if is_windows():
-        preferences.source_status('Desktop integrations', 'Windows preview: task events, agents, pets, backgrounds and timers. Windows notification capture, music and volume are not implemented yet.')
+        preferences.source_status('Desktop integrations', 'Windows preview: task events, agents, pets, backgrounds and timers. Windows music uses system media sessions. Notification capture and volume are not implemented yet.')
     live_sources = []
-    music_enabled = args.music if args.music is not None else args.observe
+    music_enabled = args.music if args.music is not None else (args.observe or (is_windows() and not args.demo))
     volume_enabled = args.volume if args.volume is not None else args.observe
     if music_enabled:
-        from pulse.sources.mpris import Mpris
-        music_source = Mpris(app)
+        if is_windows():
+            from pulse.sources.windows_media import WindowsMedia
+            music_source = WindowsMedia(app)
+        else:
+            from pulse.sources.mpris import Mpris
+            music_source = Mpris(app)
         controller.set_music_source(music_source)
         music_source.notification.connect(controller.set_media)
         music_source.cleared.connect(controller.clear_media)

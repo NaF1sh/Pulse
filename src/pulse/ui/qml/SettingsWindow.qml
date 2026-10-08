@@ -101,7 +101,7 @@ Window {
                             {key:"dnd", title:"Do not disturb", detail:"Pause ordinary notifications. Critical alerts follow your preferences."},
                             {key:"motion", title:"Reduce motion", detail:"Use brief fades with fewer animations."},
                             {key:"quiet_plasma", title:"Quiet Plasma popups · experimental", detail:"Pause Plasma popups and sounds while Pulse is connected. Critical alerts may still appear. See Status for connection details."}
-                        ].filter(option => !preferences || preferences.desktopSources || option.key === "motion")
+                        ].filter(option => !preferences || preferences.desktopSources || option.key === "motion" || option.key === "music")
                         Rectangle {
                             required property var modelData
                             width: general.width; height: Math.max(82, detail.implicitHeight + 48)
@@ -218,7 +218,7 @@ Window {
                 }
             }
             FocusPage { controller: settings.controller }
-            MusicPage { controller: settings.controller; desktopSupported: !settings.preferences || settings.preferences.desktopSources }
+            MusicPage { controller: settings.controller }
             TasksPage { controller: settings.controller }
         }
         Rectangle { x: 32; anchors.bottom: parent.bottom; anchors.bottomMargin: 54; width: parent.width - 64; height: 1; color: "#282a32" }

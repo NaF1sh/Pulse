@@ -29,7 +29,7 @@ See [task commands, agent setup, privacy, and current limits](docs/tasks.md).
 
 - **Know when you’re needed.** Running tasks, persistent input/permission alerts, completion cards, and a compact activity drawer inside the island.
 - **Messages at a glance.** Source icons, compact previews, notification actions, and click-to-open when supported by the desktop and app.
-- **Your music nearby.** Track, artist, artwork, and play/pause/skip controls from MPRIS players. Notifications briefly take its place, then the song returns.
+- **Your music nearby.** Track, artist, artwork, and play/pause/skip controls from Windows media sessions and Linux MPRIS players. Notifications briefly take its place, then the song returns.
 - **A companion you choose.** 38 pets and emotes, three palettes, custom colors, random colors, local image backgrounds, and reduced-motion support.
 - **Focus with a finish line.** Start a focus session, pause when needed, and take a timed break. The countdown stays in the island.
 - **Catch up on your terms.** Search saved notifications by app or message, alongside volume feedback and Do not disturb.
@@ -56,13 +56,13 @@ Focus sessions run while Pulse is open; quitting ends them. Notifications tempor
 
 - **[Download Windows source preview (ZIP)](https://github.com/NaF1sh/Pulse/archive/refs/heads/main.zip)** — Python 3.12+ required; extract and run `install-windows.cmd`.
 - **[Download Linux source (tar.gz)](https://github.com/NaF1sh/Pulse/archive/refs/heads/main.tar.gz)** — extract and run `install.sh`.
-- [Preview release notes](docs/release-notes-0.2.0a1.md)
+- [Preview release notes](docs/release-notes-0.2.0a2.md)
 
-These links download the latest code from `main` directly, without requiring a release upload. Extract the archive and open the `Pulse-main` folder. The Windows download is a source-installer preview, not a standalone executable. Windows desktop notification capture, music, and volume are not implemented yet.
+These links download the latest code from `main` directly, without requiring a release upload. Extract the archive and open the `Pulse-main` folder. The Windows download is a source-installer preview, not a standalone executable. Windows music detection is included; desktop notification capture and volume are not implemented yet.
 
 ## Install
 
-**Windows:** extract the [Windows preview ZIP](https://github.com/NaF1sh/Pulse/archive/refs/heads/main.zip), run `install-windows.cmd`, and open Pulse from Start. Requires Python 3.12+; task monitoring, pets, and backgrounds are implemented. Native Windows notification/music/volume integrations are not yet implemented, and Windows desktop validation remains outstanding. See [Windows setup and scope](docs/windows.md).
+**Windows:** extract the [Windows preview ZIP](https://github.com/NaF1sh/Pulse/archive/refs/heads/main.zip), run `install-windows.cmd`, and open Pulse from Start. Requires Python 3.12+; task monitoring, pets, and backgrounds are implemented. Windows music uses system media sessions; notification capture and volume are not yet implemented, and Windows desktop validation remains outstanding. See [Windows setup and scope](docs/windows.md).
 
 **Linux:** requires **Python 3.12+**. The installer creates a private Python environment, downloads dependencies, and adds Pulse to your app menu. No `sudo` is needed.
 
@@ -118,7 +118,7 @@ The **Status** page also offers a sample notification. Keyboard navigation works
 | X11 / XWayland | Default fallback with software rendering |
 | Native Wayland | Experimental; requires matching Qt and LayerShellQt installations |
 | Other desktops | Not yet verified; notification monitoring permissions and app activation may differ |
-| Music | Requires an MPRIS-compatible player; artwork depends on the player/browser |
+| Music | Requires Windows media-session support or MPRIS on Linux; artwork depends on the player/browser |
 | Website icons | Uses the image provided by the browser, with an app/pet fallback |
 
 Pulse mirrors the desktop notification service. **Your desktop can still show its own popup.** On supported Plasma versions, the opt-in **Quiet Plasma popups** setting requests temporary inhibition while Pulse is connected. Critical alerts may still appear, and notification sounds may be paused. This experimental mode needs real-desktop verification; see [popup behavior and testing](docs/plasma-popups.md). Pulse does not replace your notification daemon. Inline replies and blur are not implemented. Music controls depend on the capabilities reported by the player.

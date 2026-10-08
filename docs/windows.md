@@ -29,6 +29,23 @@ The installer creates `%LOCALAPPDATA%\Pulse\app\venv` and a Start-menu shortcut.
 It does not require administrator privileges, change PATH, or register login startup.
 Launching Pulse again opens Settings in the existing instance.
 
+## Music
+
+Music detection starts automatically (except in demo mode or with `--no-music`).
+Players must expose a [Windows media session](https://learn.microsoft.com/en-us/uwp/api/windows.media.control.globalsystemmediatransportcontrolssessionmanager).
+Pulse shows the track, artist, and available cover art, with play/pause and skip controls
+when the player supports them. A playing session takes priority over paused sessions.
+Stopped or closed sessions disappear. Windows 10 version 1809 or later is required.
+
+To update an older installation, quit Pulse completely, extract a fresh download, and
+rerun `install-windows.cmd`. This installs the Windows media dependencies as well as the app.
+Open Pulse from Start, play a track, and allow a few seconds for discovery. Enable
+**Now playing** in General settings if you previously hid music. The Music page displays
+the active track; Status shows the music connection or dependency error. Notifications
+and active task cards can temporarily take priority over music in the island.
+If Status says it is waiting for a player, check that the player/browser is sharing
+system media controls. Audio output alone does not supply track metadata.
+
 ## Try a task
 
 In PowerShell:
@@ -67,7 +84,8 @@ your agent uses. Live Windows agent-hook setup has not been verified here.
 | Pets, colors, downloaded-image backgrounds | Implemented | Available |
 | Optional focus/break timer | Implemented | Available |
 | Desktop notification mirroring | Not implemented | D-Bus observer |
-| Music controls and volume feedback | Not implemented | MPRIS / PipeWire |
+| Music detection, artwork and controls | Implemented with Windows media sessions; native player validation pending | MPRIS |
+| Volume feedback | Not implemented | PipeWire |
 | Plasma popup inhibition | Not applicable | Experimental opt-in |
 
 Unsupported Linux integration switches are hidden in Windows General settings. Status
