@@ -29,6 +29,14 @@ The installer creates `%LOCALAPPDATA%\Pulse\app\venv` and a Start-menu shortcut.
 It does not require administrator privileges, change PATH, or register login startup.
 Launching Pulse again opens Settings in the existing instance.
 
+## Moving the island
+
+Drag the circle or an empty area of the expanded bar to move it. Buttons keep their
+normal actions; dragging does not open or dismiss a notification. Cards stay within the
+screen’s available area and ease inward when opening near an edge. Reduce motion disables
+this adjustment animation. Every launch starts at top-middle again; positions are never
+saved, including across a PC restart.
+
 ## Installation troubleshooting
 
 The installer prints the exact Python version and executable it selects. Installation

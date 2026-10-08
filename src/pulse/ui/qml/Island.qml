@@ -14,6 +14,15 @@ Window {
     property bool tasksExpanded: false
     readonly property bool hasTasks: pulseController.tasks.summary.total > 0
     onHasTasksChanged: if (!hasTasks) tasksExpanded = false
+    property point desktopPosition: Qt.point(x, y)
+    property bool dragging: false
+    onDraggingChanged: {
+        if (dragging) { swapTimer.stop(); closeTimer.stop() }
+        else refreshCard()
+    }
+    signal moveStarted(real globalX, real globalY)
+    signal moveRequested(real globalX, real globalY)
+    signal moveFinished()
     property bool expanded: false
     onTasksExpandedChanged: { expanded = tasksExpanded; refreshCard() }
     property bool open: false
@@ -23,6 +32,7 @@ Window {
     property var incoming: displayed
     onExpandedChanged: refreshCard()
     function refreshCard() {
+        if (dragging) return
         incoming = pulseController.card
         if (!pulseController.active && !expanded) {
             swapTimer.stop()
@@ -257,14 +267,48 @@ Window {
         }
         MouseArea {
             id: islandMouse
+            objectName: "islandDragArea"
+            property point pressGlobal
+            property bool dragGesture: false
+            function pointerPosition(mouse) {
+                const local = mapToItem(null, mouse.x, mouse.y)
+                return Qt.point(root.desktopPosition.x + local.x, root.desktopPosition.y + local.y)
+            }
+            preventStealing: true
             anchors.fill: parent
             hoverEnabled: true
-            cursorShape: !pulseController.active || root.displayed.canOpen || (root.displayed.status === "Focus" || root.displayed.status === "Task") ? Qt.PointingHandCursor : Qt.ArrowCursor
+            cursorShape: root.dragging ? Qt.ClosedHandCursor : Qt.OpenHandCursor
             ToolTip.visible: containsMouse && !root.open
             ToolTip.delay: 900
-            ToolTip.text: "Right-click for settings · Double-click to toggle music"
+            ToolTip.text: "Drag to move · Right-click for settings · Double-click to toggle music"
             acceptedButtons: Qt.LeftButton | Qt.RightButton
+            onPressed: mouse => {
+                dragGesture = false
+                if (mouse.button === Qt.LeftButton) {
+                    pressGlobal = pointerPosition(mouse)
+                    root.moveStarted(pressGlobal.x, pressGlobal.y)
+                }
+            }
+            onPositionChanged: mouse => {
+                if (!(pressedButtons & Qt.LeftButton)) return
+                const position = pointerPosition(mouse)
+                const dx = position.x - pressGlobal.x
+                const dy = position.y - pressGlobal.y
+                if (!dragGesture && Math.hypot(dx, dy) < Qt.styleHints.startDragDistance) return
+                dragGesture = true
+                root.dragging = true
+                idleClickTimer.stop()
+                root.moveRequested(position.x, position.y)
+            }
+            onReleased: mouse => {
+                if (mouse.button === Qt.LeftButton) {
+                    root.dragging = false
+                    root.moveFinished()
+                }
+            }
+            onCanceled: { root.dragging = false; root.moveFinished() }
             onClicked: mouse => {
+                if (dragGesture) return
                 if (mouse.button === Qt.RightButton) { if (settingsWindow.preferences) root.openSettings(); else { petPicker.show(); petPicker.requestActivate() } }
                 else if (root.displayed.status === "Task") root.tasksExpanded = !root.tasksExpanded
                 else if (root.mediaShown && pulseController.active) { /* Double-click hides music. */ }
@@ -278,6 +322,7 @@ Window {
                 else root.expanded = !root.expanded
             }
             onDoubleClicked: mouse => {
+                if (dragGesture) return
                 if (mouse.button === Qt.LeftButton && (root.mediaShown || !pulseController.active)) {
                     idleClickTimer.stop()
                     root.expanded = false

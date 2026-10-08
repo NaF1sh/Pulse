@@ -56,7 +56,7 @@ Focus sessions run while Pulse is open; quitting ends them. Notifications tempor
 
 - **[Download Windows source preview (ZIP)](https://github.com/NaF1sh/Pulse/archive/refs/heads/main.zip)** — Python 3.12+ required; extract and run `install-windows.cmd`.
 - **[Download Linux source (tar.gz)](https://github.com/NaF1sh/Pulse/archive/refs/heads/main.tar.gz)** — extract and run `install.sh`.
-- [Preview release notes](docs/release-notes-0.2.0a4.md)
+- [Preview release notes](docs/release-notes-0.2.0a5.md)
 
 These links download the latest code from `main` directly, without requiring a release upload. Extract the archive and open the `Pulse-main` folder. The Windows download is a source-installer preview, not a standalone executable. Windows music detection is included; desktop notification capture and volume are not implemented yet.
 
@@ -102,10 +102,13 @@ Quit an existing live instance first when switching to demo mode. Pulse intentio
 
 | Gesture | Result |
 | --- | --- |
+| Drag the pet or empty card area | Move the island for this session |
 | Right-click the pet or card | Open Settings |
 | Click a notification | Request its default action or open its app |
 | Click × | Dismiss Pulse's copy |
 | Double-click music or the idle pet | Hide or restore the music card |
+
+Pulse starts at the top-middle of the primary screen on every launch. Drag positions are not saved. Cards adjust inward near screen edges so their content stays reachable.
 
 The **Status** page also offers a sample notification. Keyboard navigation works throughout Settings.
 

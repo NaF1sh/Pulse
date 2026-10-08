@@ -30,7 +30,7 @@ def main(argv=None):
         from pulse.tasks.cli import main as task_main
         return task_main(arguments)
     parser = argparse.ArgumentParser(description=__doc__, epilog="Tasks: pulse run -- COMMAND [ARGS...]; pulse task --help")
-    parser.add_argument("--backend", choices=["auto", "xcb", "layer-shell", "offscreen"], default="auto")
+    parser.add_argument("--backend", choices=["auto", "windows", "xcb", "layer-shell", "offscreen"], default="auto")
     sources = parser.add_mutually_exclusive_group()
     sources.add_argument("--demo", action="store_true", help="play scripted fake notifications")
     sources.add_argument("--observe", action="store_true", help="mirror desktop notifications without owning the bus")
@@ -209,7 +209,7 @@ def main(argv=None):
         app.addLibraryPath("/usr/lib/qt6/plugins")
         qml = source.read_text().replace("import QtQuick.Window", "import QtQuick.Window\nimport org.kde.layershell 1.0 as LS")
         qml = qml.replace('id: root', '''id: root
-    LS.Window.anchors: LS.Window.AnchorTop
+    LS.Window.anchors: LS.Window.AnchorTop | LS.Window.AnchorLeft
     LS.Window.layer: LS.Window.LayerOverlay
     LS.Window.exclusionZone: -1
     LS.Window.keyboardInteractivity: LS.Window.KeyboardInteractivityNone

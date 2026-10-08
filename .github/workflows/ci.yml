@@ -56,7 +56,7 @@ jobs:
       - name: Install Windows dependencies
         run: python -m pip install -e '.[dev]' build
       - name: Test Windows tasks, storage, single instance, and QML
-        run: python -m pytest -q tests/test_windows_support.py tests/test_windows_media.py tests/test_notification_ui.py tests/test_tasks.py tests/test_tasks_ui.py tests/test_settings_ui.py tests/test_runtime.py tests/test_controller.py tests/test_focus.py
+        run: python -m pytest -q tests/test_windows_support.py tests/test_windows_media.py tests/test_notification_ui.py tests/test_window.py tests/test_music_gestures.py tests/test_scaling.py tests/test_tasks.py tests/test_tasks_ui.py tests/test_settings_ui.py tests/test_runtime.py tests/test_controller.py tests/test_focus.py
       - name: Probe native Windows media API
         run: python -m pulse.sources.windows_media_worker
       - name: Native Windows startup smoke test
