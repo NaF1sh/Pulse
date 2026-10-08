@@ -1,0 +1,192 @@
+Pulse — Project Plan
+Oct 8, 2026 · @onemoretime
+Verdict
+Pulse is a good project: small enough to ship, visual enough to stay motivating, and deep enough to teach real architecture. The original plan gets the order right (fake data, then animation, then real notifications) but skips the three Linux problems that decide whether the app can exist at all.
+What the original plan gets right:
+• UI and animation first, with fake notifications, before any D-Bus work.
+• A Python core (queue, priority, rules, history) that is testable without the UI.
+• Themes as data, never code; plugins kept separate with permissions.
+• Notification types (message, progress, media, level) instead of one generic popup.
+What it misses or gets wrong:
+• Window placement on Wayland. A normal Qt window cannot pin itself to the top-center of the screen or stay above everything on Wayland. CachyOS defaults to Wayland sessions. This is the first thing to solve, not version 0.85.
+• Who owns the notification bus. Only one program can own org.freedesktop.Notifications. On KDE Plasma and GNOME, the desktop shell already owns it, so Pulse cannot simply "implement" it there.
+• Blur. An app cannot blur what is behind its own window. Background blur is a compositor feature, so "blur": 18 in a theme only works where the compositor cooperates.
+• Click-through. A transparent always-on-top window blocks clicks on whatever it covers unless you set an input region.
+• Roadmap granularity. Twenty-five numbered versions invite scope creep. Five milestones with clear exit criteria are easier to finish.
+The fix is a one-week technical spike before any polish work (Milestone 0 below).
+The three Linux hard problems
+Your desktop environment decides how hard Pulse is. Find out which session you run (echo $XDG_SESSION_TYPE $XDG_CURRENT_DESKTOP) before writing code.
+Desktop
+Pin to top-center
+Own the notification bus
+Real background blur
+Hyprland, Sway, niri (Wayland)
+Yes, via layer-shell
+Yes, stop mako/dunst/swaync first
+Hyprland: yes, via a layerrule; others vary
+KDE Plasma (Wayland)
+Yes, via layer-shell (LayerShellQt)
+No, plasmashell owns it
+Only through KWin's own blur API
+GNOME (Wayland)
+No layer-shell support
+No, gnome-shell owns it
+No
+Any X11 session
+Yes, via window flags
+Depends on the shell, as above
+Compositor-dependent
+1. Window placement
+Wayland does not let ordinary windows choose their position or stay above others. Bars and overlays use the layer-shell protocol instead: the window anchors to a screen edge on the "overlay" layer.
+Routes from Python, in order of preference:
+1. LayerShellQt as a Qt shell plugin. KDE's layer-shell-qt can be loaded through QT_WAYLAND_SHELL_INTEGRATION=layer-shell, which may let a PySide6 window become a layer surface without C++ bindings. Verify this works with your installed version during the spike.
+2. XWayland fallback. Run with QT_QPA_PLATFORM=xcb and use FramelessWindowHint | WindowStaysOnTopHint | Tool. Fine for prototyping; less reliable across compositors.
+3. Change toolkit. GTK4 + gtk4-layer-shell via PyGObject is a proven Python route, at the cost of QML's animation system.
+2. Notification bus ownership
+Pulse can run in two modes. Design the adapter so both fit behind the same interface.
+• Daemon mode (full features): Pulse owns org.freedesktop.Notifications, returns IDs, handles replacement, actions and CloseNotification, and emits NotificationClosed / ActionInvoked. Works on Hyprland, Sway and similar.
+• Observer mode (read-only): Pulse watches Notify calls on the session bus with a D-Bus monitor and mirrors them. The shell still shows its own popup, and actions cannot be answered. This is the only clean option on KDE and GNOME.
+3. Blur and click-through
+• Treat blur as an optional, compositor-specific extra. The default "glass" look is a translucent dark fill with a subtle border, which works everywhere.
+• Keep the window a fixed size (the largest the island can grow) and animate the shape inside it. Resizing the real window every frame causes stutter.
+• Set an input region (QWindow.setMask) that matches only the visible island, so clicks around it pass through to the desktop.
+Stack and architecture
+Keep Python + PySide6 + QML, provided Milestone 0 proves the window can be pinned on your desktop. The core rule: everything under core/ is plain Python with no Qt UI imports, so it can be tested in isolation.
+Layer
+Choice
+Why
+Language
+Python 3.12+
+You know it; fast iteration
+UI
+PySide6 + Qt Quick (QML)
+States, transitions, easing and springs built in
+Event loop glue
+qasync
+Runs asyncio inside the Qt loop, so D-Bus and UI share one thread
+D-Bus
+dbus-fast (asyncio)
+Clean service definitions; QtDBus is the alternative
+Settings
+TOML file
+Readable and hand-editable; tomllib is built in
+Themes
+JSON + assets, validated by a schema (pydantic)
+Bad themes fail loudly, never crash the island
+History
+SQLite
+Built into Python
+Media, battery, network
+MPRIS, UPower, NetworkManager over D-Bus
+Same adapter pattern as notifications
+Volume
+PipeWire via wpctl or pulsectl
+Works on CachyOS defaults
+Tests
+pytest + pytest-qt
+Core logic and controller signals
+Data flows one way. Sources produce events, the core decides what deserves the island, the controller turns that into state, and QML only renders state. QML never calls D-Bus, and the core never knows what a theme is.
+Themes reach only the QML layer, and history hangs off the core; swapping a source (daemon for observer, Linux for Windows later) touches nothing to its right.
+Animation design
+The island is one shape that changes size, never a series of popups. A single rounded rectangle holds the current content; its width, height and corner radius follow the state, and content cross-fades inside it.
+Rules that make it feel fluid:
+• Retarget, don't restart. If a new notification arrives mid-exit, the shape should turn around from its current size. Spring-based Behavior on width/height does this naturally; fixed-duration transitions jump.
+• Shape leads, content follows. On entry, content fades in once the shape is about 70% grown. On exit, content fades out first, then the shape shrinks.
+• Size comes from content. Measure the text (implicitWidth, TextMetrics), then clamp between a minimum pill and a maximum width. Long bodies elide or wrap to two lines.
+• Presets are data. An animation preset is a named set of numbers (duration, easing, overshoot, stagger). Themes pick a preset by name; they never contain animation code.
+• Reduced motion. One setting that swaps every preset for short fades.
+Starting timings for the default "expand" preset (tune by eye):
+Time
+Effect
+0 ms
+30 px pill visible
+0–120 ms
+width grows (OutCubic)
+80–180 ms
+height grows
+120–220 ms
+icon scales 0 to 1 with slight overshoot
+160–300 ms
+title fades and slides in
+200–350 ms
+body fades and slides in
+350 ms+
+settle; hold for the timeout
+Keep a debug overlay that shows the current state name and frame rate. If it drops below your monitor's refresh rate during a transition, fix it before adding features.
+Roadmap
+Six milestones replace the 25 version numbers. Never start a milestone until the gate above it passes; that rule is what keeps the project finishable.
+M1 is where most of the effort should go. If the island does not feel great with fake data, real notifications will not fix it.
+Repo layout and testing
+The folders mirror the architecture, so a dependency pointing the wrong way is visible in an import line.
+pulse/
+├── pyproject.toml
+├── src/pulse/
+│   ├── main.py              # wires everything, starts qasync loop
+│   ├── core/                # pure Python, no Qt UI imports
+│   │   ├── models.py        # Notification, Priority, Kind (dataclasses)
+│   │   ├── manager.py       # queue, priority, replace, timeout
+│   │   ├── rules.py         # DND, fullscreen, per-app rules
+│   │   └── history.py       # SQLite
+│   ├── sources/             # adapters that emit events into core
+│   │   ├── fake.py          # scripted demo notifications
+│   │   ├── dbus_daemon.py   # owns org.freedesktop.Notifications
+│   │   ├── dbus_observer.py # read-only monitor mode
+│   │   └── mpris.py, upower.py, audio.py (later)
+│   ├── ui/
+│   │   ├── controller.py    # QObject: state + properties for QML
+│   │   ├── window.py        # layer-shell / X11 setup, input mask
+│   │   └── qml/
+│   │       ├── Island.qml
+│   │       ├── layouts/     # Message, Progress, Media, Level
+│   │       └── effects/
+│   └── themes/
+│       ├── schema.py
+│       └── loader.py
+├── themes/default/theme.json
+└── tests/
+Test the core from day one; the UI gets a smaller set of controller tests.
+[ ] Higher priority preempts lower; equal priority queues in order
+[ ] replaces_id updates in place without re-running the entry animation
+[ ] Timeouts fire with a fake clock (never sleep in tests)
+[ ] Malformed D-Bus input (missing icon, huge body, bad markup) is sanitised
+[ ] Invalid theme files are rejected with a clear error and the default is used
+[ ] Controller emits the right state sequence for enter, hold, exit and interrupt
+Add a pulse --demo flag that plays a scripted mix of notification types. It is your manual test, your screen recording source and your README GIF.
+Risks, scope cuts and prior art
+The biggest risk is not technical: it is building the settings editor, effects and five widgets before the core island feels great.
+Risk
+Likelihood
+Mitigation
+Can't pin the window on your desktop
+Medium
+Milestone 0 spike; XWayland fallback; switch toolkit only if both fail
+Shell owns the notification bus (KDE, GNOME)
+High on those desktops
+Observer mode first; daemon mode on tiling compositors
+Animations stutter
+Medium
+Fixed-size window, animate inside it; frame-rate overlay from day one
+Animated backgrounds burn CPU/GPU while idle
+High
+Pause effects when the island is hidden; static images first
+Scope creep
+High
+Only start a milestone when the previous one's exit criteria pass
+Cut from 1.0 (revisit after release):
+• Video and animated WebP backgrounds
+• Plugin system with permissions
+• Windows support
+• Theme marketplace or importer
+• Reply-from-island (inline text input)
+Prior art worth reading before you start. Quickshell is a QtQuick toolkit for desktop widgets with layer-shell, a notification server, MPRIS and PipeWire built in. It solves most of Milestone 0 and 1 in pure QML, at the cost of writing logic in QML/JS rather than Python. Read a few Quickshell configs for animation ideas even if you stay with Python; projects like hare show the expected setup, including stopping mako or dunst so the notification server can register.
+Sources: Quickshell build docs · hare (Quickshell shell) · Freedesktop notification spec
+First session checklist
+The first session ends when a black pill sits at the top-center of your screen, above other windows, and clicks pass through around it. No notifications yet.
+[ ] Note your session: echo $XDG_SESSION_TYPE $XDG_CURRENT_DESKTOP
+[ ] Create the repo, a virtualenv and pyproject.toml; install PySide6, qasync, pytest, pytest-qt
+[ ] Load a QML file with a transparent, frameless window and a 30 px rounded pill
+[ ] Try layer-shell: install layer-shell-qt, run with QT_WAYLAND_SHELL_INTEGRATION=layer-shell, check anchoring and overlay layer
+[ ] If that fails, try QT_QPA_PLATFORM=xcb with stay-on-top flags and record what breaks
+[ ] Set an input mask to the pill's rectangle; confirm you can click the window underneath
+[ ] Bind a key or timer that toggles the pill between 30 px and 300 × 64 px with a spring animation
+[ ] Write down which route worked; that decides the toolkit for Milestone 1

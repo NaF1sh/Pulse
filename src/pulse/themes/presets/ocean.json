@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "name": "Ocean",
+  "colors": {
+    "background": "#101b24",
+    "border": "#294455",
+    "title": "#e4f5ff",
+    "body": "#b5cfdd",
+    "muted": "#8caab9",
+    "accent": "#77c9ef",
+    "progress": "#75d3bd"
+  },
+  "animation": "gentle"
+}

@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+[project]
+name = "pulse-island"
+version = "0.0.1"
+requires-python = ">=3.12"
+dependencies = ["PySide6>=6.9,<7", "pydantic>=2.12,<3"]
+[project.optional-dependencies]
+dev = ["pytest>=8", "pytest-qt>=4"]
+notifications = ["qasync>=0.27", "dbus-fast>=2"]
+[project.scripts]
+pulse = "pulse.main:main"
+[tool.setuptools.packages.find]
+where = ["src"]
+[tool.setuptools.package-data]
+pulse = ["ui/qml/*.qml", "themes/presets/*.json"]
+[tool.pytest.ini_options]
+pythonpath = ["src"]

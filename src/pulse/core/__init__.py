@@ -1,0 +1,1 @@
+"""Pure Python notification policy."""

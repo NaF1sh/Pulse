@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "name": "Default",
+  "colors": {
+    "background": "#101014",
+    "border": "#35353c",
+    "title": "#eeeeef",
+    "body": "#bebec8",
+    "muted": "#aaaab5",
+    "accent": "#b3a0fa",
+    "progress": "#8ccebb"
+  },
+  "layout": {
+    "min_width": 300,
+    "max_width": 380,
+    "min_height": 70,
+    "padding_x": 20,
+    "padding_y": 10,
+    "spacing": 3,
+    "radius": 20
+  },
+  "typography": {
+    "label_size": 10,
+    "title_size": 14,
+    "body_size": 12
+  },
+  "animation": "spring"
+}

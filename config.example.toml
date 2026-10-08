@@ -1,0 +1,11 @@
+# Copy to ~/.config/pulse/config.toml, or pass --config PATH.
+# Restart Pulse after editing. These controls affect Pulse, not Plasma.
+[notifications]
+dnd = false
+allow_critical = true
+muted_apps = [] # Case-insensitive exact app names, e.g. ["Downloads", "Music"]
+default_timeout = 5.0 # Seconds; applies only when a live source requests the default.
+
+[appearance]
+reduced_motion = false
+theme = "default" # Built-in: default, ocean, rose; or a JSON path relative to this file.

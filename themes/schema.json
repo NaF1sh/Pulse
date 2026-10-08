@@ -1,0 +1,174 @@
+{
+  "$defs": {
+    "Colors": {
+      "additionalProperties": false,
+      "properties": {
+        "background": {
+          "default": "#101014",
+          "pattern": "^#[0-9a-fA-F]{6}$",
+          "title": "Background",
+          "type": "string"
+        },
+        "border": {
+          "default": "#35353c",
+          "pattern": "^#[0-9a-fA-F]{6}$",
+          "title": "Border",
+          "type": "string"
+        },
+        "title": {
+          "default": "#eeeeef",
+          "pattern": "^#[0-9a-fA-F]{6}$",
+          "title": "Title",
+          "type": "string"
+        },
+        "body": {
+          "default": "#bebec8",
+          "pattern": "^#[0-9a-fA-F]{6}$",
+          "title": "Body",
+          "type": "string"
+        },
+        "muted": {
+          "default": "#aaaab5",
+          "pattern": "^#[0-9a-fA-F]{6}$",
+          "title": "Muted",
+          "type": "string"
+        },
+        "accent": {
+          "default": "#b3a0fa",
+          "pattern": "^#[0-9a-fA-F]{6}$",
+          "title": "Accent",
+          "type": "string"
+        },
+        "progress": {
+          "default": "#8ccebb",
+          "pattern": "^#[0-9a-fA-F]{6}$",
+          "title": "Progress",
+          "type": "string"
+        }
+      },
+      "title": "Colors",
+      "type": "object"
+    },
+    "Layout": {
+      "additionalProperties": false,
+      "properties": {
+        "min_width": {
+          "default": 300,
+          "maximum": 380,
+          "minimum": 260,
+          "title": "Min Width",
+          "type": "integer"
+        },
+        "max_width": {
+          "default": 380,
+          "maximum": 380,
+          "minimum": 260,
+          "title": "Max Width",
+          "type": "integer"
+        },
+        "min_height": {
+          "default": 70,
+          "maximum": 90,
+          "minimum": 60,
+          "title": "Min Height",
+          "type": "integer"
+        },
+        "padding_x": {
+          "default": 20,
+          "maximum": 22,
+          "minimum": 12,
+          "title": "Padding X",
+          "type": "integer"
+        },
+        "padding_y": {
+          "default": 10,
+          "maximum": 14,
+          "minimum": 8,
+          "title": "Padding Y",
+          "type": "integer"
+        },
+        "spacing": {
+          "default": 3,
+          "maximum": 6,
+          "minimum": 2,
+          "title": "Spacing",
+          "type": "integer"
+        },
+        "radius": {
+          "default": 20,
+          "maximum": 24,
+          "minimum": 12,
+          "title": "Radius",
+          "type": "integer"
+        }
+      },
+      "title": "Layout",
+      "type": "object"
+    },
+    "Typography": {
+      "additionalProperties": false,
+      "properties": {
+        "label_size": {
+          "default": 10,
+          "maximum": 11,
+          "minimum": 9,
+          "title": "Label Size",
+          "type": "integer"
+        },
+        "title_size": {
+          "default": 14,
+          "maximum": 16,
+          "minimum": 12,
+          "title": "Title Size",
+          "type": "integer"
+        },
+        "body_size": {
+          "default": 12,
+          "maximum": 13,
+          "minimum": 10,
+          "title": "Body Size",
+          "type": "integer"
+        }
+      },
+      "title": "Typography",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "const": 1,
+      "default": 1,
+      "title": "Version",
+      "type": "integer"
+    },
+    "name": {
+      "default": "Default",
+      "maxLength": 60,
+      "minLength": 1,
+      "title": "Name",
+      "type": "string"
+    },
+    "colors": {
+      "$ref": "#/$defs/Colors"
+    },
+    "layout": {
+      "$ref": "#/$defs/Layout"
+    },
+    "typography": {
+      "$ref": "#/$defs/Typography"
+    },
+    "animation": {
+      "default": "spring",
+      "enum": [
+        "spring",
+        "gentle",
+        "snappy"
+      ],
+      "title": "Animation",
+      "type": "string"
+    }
+  },
+  "title": "Theme",
+  "type": "object"
+}

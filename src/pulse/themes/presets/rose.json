@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "name": "Rose",
+  "colors": {
+    "background": "#23171f",
+    "border": "#503342",
+    "title": "#ffeaf4",
+    "body": "#d8b8c9",
+    "muted": "#b496a6",
+    "accent": "#eda4c7",
+    "progress": "#d5b6f4"
+  },
+  "animation": "snappy"
+}
