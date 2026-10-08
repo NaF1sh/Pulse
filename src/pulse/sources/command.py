@@ -1,4 +1,4 @@
-"""Nonblocking, bounded command runner for read-only system sources."""
+"""Nonblocking, bounded command runner for desktop sources and explicit user commands."""
 from PySide6.QtCore import QObject, QProcess, QProcessEnvironment, QTimer, Signal
 
 

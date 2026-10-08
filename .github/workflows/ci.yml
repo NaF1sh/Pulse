@@ -32,3 +32,71 @@ jobs:
           /tmp/pulse-wheel/bin/python -m pip install dist/*.whl
           cd /tmp
           /tmp/pulse-wheel/bin/python -m pulse.main --backend offscreen --demo --quit-after 3
+      - uses: actions/upload-artifact@v4
+        if: matrix.python == '3.12'
+        with:
+          name: Pulse-source-and-wheel
+          path: |
+            dist/*.tar.gz
+            dist/*.whl
+  windows:
+    runs-on: windows-latest
+    env:
+      QT_QPA_PLATFORM: offscreen
+      QT_QUICK_BACKEND: software
+      PYTHONUTF8: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Windows dependencies
+        run: python -m pip install -e '.[dev]' build
+      - name: Test Windows tasks, storage, single instance, and QML
+        run: python -m pytest -q tests/test_windows_support.py tests/test_tasks.py tests/test_tasks_ui.py tests/test_settings_ui.py tests/test_runtime.py tests/test_controller.py tests/test_focus.py
+      - name: Native Windows startup smoke test
+        run: python -m pulse.main --backend windows --demo --quit-after 2
+      - name: Build Windows source-installer bundle
+        run: |
+          python -m build
+          $source = (Get-ChildItem dist/*.tar.gz | Select-Object -First 1).FullName
+          python tools/package_windows.py $source
+      - name: Install and check Windows launchers
+        run: |
+          python tools/install_windows.py
+          $pulse = "$env:LOCALAPPDATA\Pulse\app\venv\Scripts\pulse.exe"
+          & $pulse --doctor
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & $pulse --backend offscreen --demo --quit-after 1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tools/install_windows.py --uninstall
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Pulse-Windows-preview
+          path: dist/Pulse-Windows-preview.zip
+
+  release:
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    needs: [test, windows]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: Pulse-*
+          merge-multiple: true
+          path: release-assets
+      - name: Publish tested preview downloads
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          version="${RELEASE_TAG#v}"
+          gh release create "$RELEASE_TAG" \
+            release-assets/Pulse-Windows-preview.zip \
+            release-assets/*.tar.gz release-assets/*.whl \
+            --verify-tag --prerelease \
+            --title "Pulse $version — Linux and Windows preview" \
+            --notes-file "docs/release-notes-$version.md"

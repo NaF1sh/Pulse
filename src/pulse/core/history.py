@@ -6,8 +6,8 @@ import sqlite3
 
 
 def default_history_path():
-    base = Path(os.environ.get("XDG_DATA_HOME") or Path.home() / ".local" / "share")
-    return base / "pulse" / "history.sqlite3"
+    from pulse.platforms import data_dir
+    return data_dir() / "history.sqlite3"
 
 
 class History:

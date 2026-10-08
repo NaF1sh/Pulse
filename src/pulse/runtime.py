@@ -12,11 +12,13 @@ class Session(QObject):
 
     def __init__(self, parent=None, *, directory=None, identity=None):
         super().__init__(parent)
-        directory = Path(directory or os.environ.get('XDG_RUNTIME_DIR') or
-                         Path(os.environ.get('XDG_CACHE_HOME', Path.home() / '.cache')) / 'pulse')
+        from pulse.platforms import runtime_dir, is_windows
+        directory = Path(directory) if directory else runtime_dir()
         directory.mkdir(parents=True, exist_ok=True, mode=0o700)
         identity = identity or '|'.join(os.environ.get(key, '') for key in
                                        ('DISPLAY', 'WAYLAND_DISPLAY', 'DBUS_SESSION_BUS_ADDRESS'))
+        if is_windows():
+            identity += '|' + os.environ.get('SESSIONNAME', 'console')
         suffix = hashlib.sha256(identity.encode()).hexdigest()[:16]
         self.request = directory / f'pulse-{suffix}.activate'
         # The activation file contains only a nonce, never notification content.

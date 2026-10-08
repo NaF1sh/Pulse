@@ -37,16 +37,23 @@ def parse_player(output, service):
     artwork = artwork_url(unvariant(metadata.get("mpris:artUrl")),
                           unvariant(metadata.get("xesam:url")))
     return dict(service=service, title=title, artist=artist, status=status,
-                track=track if isinstance(track, str) else title, artwork=artwork)
+                track=track if isinstance(track, str) else title, artwork=artwork,
+                capabilities={key: unvariant(properties.get(key)) is True for key in
+                              ('CanControl', 'CanPlay', 'CanPause', 'CanGoNext', 'CanGoPrevious')})
 
 
 class Mpris(QObject):
+    controlsChanged = Signal()
     notification = Signal(object)
     cleared = Signal()
     status = Signal(str)
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.selected = None
+        self.control_error = ''
+        self.action = Command(self)
+        self.action.completed.connect(self.control_finished)
         self.discovery = Command(self)
         self.query = Command(self)
         self.discovery.completed.connect(self.discovered)
@@ -90,6 +97,8 @@ class Mpris(QObject):
                 self.status.emit("Music source unavailable: cannot read the session bus.")
             self.error_reported = True
             self.previous = None
+            self.selected = None
+            self.controlsChanged.emit()
             self.cleared.emit()
             self.timer.setInterval(5000)
             return
@@ -127,6 +136,8 @@ class Mpris(QObject):
         candidates = playing or self.samples
         if not candidates:
             self.previous = None
+            self.selected = None
+            self.controlsChanged.emit()
             self.cleared.emit()
             return
         previous_service = self.previous[0] if self.previous else None
@@ -137,13 +148,14 @@ class Mpris(QObject):
         if not selected["artwork"]:
             selected = next((item for item in candidates if item["artwork"]
                              and item["title"].casefold() == selected["title"].casefold()), selected)
+        if self.selected != selected:
+            self.selected = selected
+            self.control_error = ''
+            self.controlsChanged.emit()
         signature = tuple(selected[key] for key in ("service", "track", "title", "artist", "status", "artwork"))
         if signature == self.previous:
             return
         self.previous = signature
-        if selected["status"] != "Playing":
-            self.cleared.emit()
-            return
         self.notification.emit(Notification(
             -2000001, "Music", selected["title"], selected["artist"] or "Media player",
             timeout=0, kind=Kind.MEDIA, status=selected["status"], artwork=selected["artwork"]))
@@ -153,3 +165,30 @@ class Mpris(QObject):
         self.timer.stop()
         self.discovery.stop()
         self.query.stop()
+        self.action.stop()
+
+    @property
+    def controls(self):
+        sample = self.selected or {}
+        caps = sample.get('capabilities', {})
+        control = caps.get('CanControl', False)
+        return dict(available=bool(self.selected), busy=self.action.busy, error=self.control_error,
+                    previous=control and caps.get('CanGoPrevious', False),
+                    next=control and caps.get('CanGoNext', False),
+                    toggle=control and caps.get('CanPause' if sample.get('status') == 'Playing' else 'CanPlay', False))
+
+    def control(self, action):
+        if action not in ('previous', 'toggle', 'next') or not self.controls.get(action) or self.action.busy or not self.executable:
+            return
+        method = {'previous': 'Previous', 'next': 'Next',
+                  'toggle': 'Pause' if self.selected['status'] == 'Playing' else 'Play'}[action]
+        self.control_error = ''
+        self.action.start(self.executable, ['--user', '--timeout=1', 'call', self.selected['service'],
+                                          '/org/mpris/MediaPlayer2', PLAYER, method])
+        self.controlsChanged.emit()
+
+    def control_finished(self, code, output, error):
+        self.control_error = '' if code == 0 else 'The player did not respond. Try again.'
+        self.controlsChanged.emit()
+        if not self.stopping:
+            self.poll()

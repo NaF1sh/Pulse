@@ -79,15 +79,16 @@ def test_mpris_changes_do_not_repeat_and_playing_player_wins():
     assert len(cards) == 1
     source.samples = [parse_player(player(status="Paused"), "b")]
     source.publish()
-    assert cleared == [True]
-    assert len(cards) == 1
+    assert cleared == []
+    assert len(cards) == 2
+    assert cards[-1].status == "Paused"
     assert cards[-1].timeout == 0
     source.samples = []
     source.publish()
     assert source.previous is None
 
 
-def test_sources_retry_quietly_and_skip_initial_paused_player():
+def test_sources_retry_quietly_and_offer_resume_for_paused_player():
     app = QCoreApplication.instance() or QCoreApplication([])
     audio = Audio()
     errors = []
@@ -100,7 +101,8 @@ def test_sources_retry_quietly_and_skip_initial_paused_player():
     music.notification.connect(cards.append)
     music.samples = [parse_player(player(status="Paused"), "a")]
     music.publish()
-    assert not cards
+    assert len(cards) == 1
+    assert cards[0].status == "Paused"
 
 
 def test_duplicate_browser_player_with_cover_art_is_preferred():

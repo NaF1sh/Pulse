@@ -99,3 +99,27 @@ def test_quiet_plasma_is_opt_in_and_persists(tmp_path):
     assert preferences.quiet_plasma
     _, restored = make_preferences(tmp_path)
     assert restored.quiet_plasma
+
+
+def test_history_search_includes_older_entries_and_literal_punctuation(tmp_path):
+    _, preferences = make_preferences(tmp_path)
+    history = History(preferences.history_path)
+    try:
+        history.record(Notification(1, 'Browser', 'Older important message', 'Budget 100%_done'))
+        for number in range(2, 110):
+            history.record(Notification(number, 'Chat', 'New message'))
+        preferences.refreshHistory()
+        preferences.setHistoryQuery('OLDER IMPORTANT')
+        assert len(preferences.entries) == 1
+        preferences.setHistoryQuery('100%_done')
+        assert len(preferences.entries) == 1
+        preferences.setHistoryQuery('chat')
+        assert len(preferences.entries) == 108
+        preferences.setHistoryQuery('missing')
+        assert preferences.entries == []
+        preferences.setHistoryQuery('')
+        assert len(preferences.entries) == 109
+        preferences.clearHistory()
+        assert preferences.entries == []
+    finally:
+        history.close()

@@ -3,8 +3,8 @@ requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 [project]
 name = "pulse-island"
-version = "0.1.0a1"
-description = "A quiet Linux desktop companion for notifications, music, and volume"
+version = "0.2.0a1"
+description = "A floating desktop island for tasks, agents, and Linux notifications"
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE", "ASSET_NOTICE.md"]
@@ -18,6 +18,8 @@ Repository = "https://github.com/NaF1sh/Pulse"
 Issues = "https://github.com/NaF1sh/Pulse/issues"
 [project.scripts]
 pulse = "pulse.main:main"
+[project.gui-scripts]
+pulse-island = "pulse.main:main"
 [tool.setuptools.packages.find]
 where = ["src"]
 [tool.setuptools.package-data]

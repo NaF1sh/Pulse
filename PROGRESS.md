@@ -137,7 +137,7 @@ Offscreen checks do not establish real desktop animation frame rate, compositor 
 
 - **Inline replies are not implemented.** Replying to Discord from the bar is not currently possible.
 - **Click-to-open and action buttons have an initial implementation.** KDE action support is detected at runtime; an installed-app fallback handles ordinary app opening. Real Discord/app activation still needs desktop verification. Inline replies remain unimplemented.
-- Music and volume adapters do not control playback or output volume.
+- Music controls use MPRIS player capabilities and still need real-player verification; output volume remains read-only.
 - Native Wayland layer-shell remains unverified on this machine because the installed system Qt and Python Qt versions differ.
 - Background blur is not implemented.
 - Pulse does not read Discord's chat history or messages directly; it receives notifications that applications send to the desktop.
@@ -221,3 +221,45 @@ The next stages are explicitly ordered: interaction verification → exceptional
 - GitHub access from the shell still fails DNS resolution; hosted CI and publication cannot be verified until push succeeds.
 
 Validation for the preview preparation: **166 tests passed**, including scaling, monitor readiness, popup-control lifecycle, and primary-screen placement. Source and wheel artifacts build; source archives exclude the supplied reference images.
+
+
+## Daily-use features and personal backgrounds
+
+- Appearance now includes live previews, custom hex/picker colors, readable random palettes,
+  and local PNG/JPEG/WebP backgrounds with vertical crop and darkness controls.
+- Imported images are validated, resized, and copied into private config storage. Rounded
+  backgrounds render through QPainter on software Qt as well as hardware rendering paths.
+- Focus sessions support chosen work/break durations, pause/resume, completion reminders,
+  and a persistent island countdown that yields to notifications. Sessions last for this run.
+- History searches app, title, and message across up to 1,000 stored arrivals.
+- MPRIS music controls support previous, pause/play, and next according to player capabilities;
+  paused players remain visible for resuming. Controls are available in the island and Music page.
+- Automated verification includes actual rendered color/image pixels, crop changes, focus
+  button clicks, music command dispatch, elapsed timer behavior, history search, and image persistence.
+- Real player responses and native file-picker behavior on the user's desktop remain to be checked.
+
+
+## Task and agent status in the island
+
+- Added a bounded local task database, a Qt-independent task CLI/API, and a terminal-preserving
+  command wrapper that reports success/failure and preserves command exit status.
+- Added a floating-island task drawer with running counts, persistent permission/input/failure
+  alerts, completion toasts, explicit open actions, dismissal, and finished-record cleanup.
+- Added a Claude Code command-hook adapter and mergeable configuration example. It never
+  emits approval decisions or reads transcripts; live hook installation remains user setup.
+- Task records survive restart; stale working records are explicitly last-reported status.
+- Added command, storage, adapter, and real QML interaction tests, plus reproducible task imagery.
+- The proposed focus notification-holding workflow was not implemented; focus remains the
+  existing optional timer, while agent/job status is the new product direction.
+
+
+## Windows preview alongside Linux
+
+- Preserved Linux defaults and installation while adding the native Windows Qt backend,
+  per-user Windows data paths, platform-specific diagnostics, and native image-path handling.
+- Added a Windows source installer, Start-menu shortcut, app icon, console/GUI entry points,
+  ownership-aware uninstall, and a ZIP packager. Python and internet access remain prerequisites.
+- Windows shares the island, task feed, backgrounds, pets, and timer. Linux notification,
+  music, and volume integrations are not advertised as implemented on Windows.
+- Added Windows CI for task/QML/runtime tests, native startup, and installer validation.
+  Native Windows behavior and hosted CI results remain unverified from this Linux workspace.

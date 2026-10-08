@@ -31,5 +31,6 @@ Automated checks cover persistence across reconnects, separate replacement
 entries, retention, clearing, rules filtering, queue deduplication, storage
 failure, display-independent CLI commands and XDG path selection.
 
-Not implemented: graphical history browser, search and export UI. JSON theme
-support is now available separately.
+Settings → History provides Refresh, Clear, and case-insensitive search across up to 1,000
+stored arrivals by app, title, and body. Search treats punctuation literally. Export UI
+is not implemented.

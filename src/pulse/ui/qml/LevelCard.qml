@@ -2,12 +2,13 @@ import QtQuick
 
 Item {
     id: level
+    property var colors: pulseTheme.colors
     property var card: ({title: "Volume", value: 0, valueLabel: ""})
     property bool reducedMotion: false
     implicitHeight: 58
     Rectangle {
         x: 14; y: 11; width: 25; height: 25; radius: 8
-        color: pulseTheme.colors.border
+        color: level.colors.border
         Canvas {
             anchors.centerIn: parent
             width: 18; height: 18
@@ -16,8 +17,8 @@ Item {
             onPaint: {
                 let ctx = getContext("2d")
                 ctx.clearRect(0, 0, width, height)
-                ctx.fillStyle = pulseTheme.colors.accent
-                ctx.strokeStyle = pulseTheme.colors.accent
+                ctx.fillStyle = level.colors.accent
+                ctx.strokeStyle = level.colors.accent
                 ctx.lineWidth = 1.4; ctx.lineCap = "round"
                 ctx.beginPath(); ctx.moveTo(2, 7); ctx.lineTo(5, 7)
                 ctx.lineTo(9, 4); ctx.lineTo(9, 14); ctx.lineTo(5, 11)
@@ -36,20 +37,20 @@ Item {
     Text {
         x: 49; y: 15
         text: level.card.title
-        color: pulseTheme.colors.title; font.pixelSize: 13; font.weight: Font.DemiBold
+        color: level.colors.title; font.pixelSize: 13; font.weight: Font.DemiBold
     }
     Text {
         anchors.right: parent.right; anchors.rightMargin: 16
         y: 13
         text: level.card.valueLabel || Math.round(level.card.value * 100) + "%"
-        color: pulseTheme.colors.accent; font.pixelSize: 16; font.weight: Font.DemiBold
+        color: level.colors.accent; font.pixelSize: 16; font.weight: Font.DemiBold
     }
     Rectangle {
         x: 16; y: 43; width: parent.width - 32; height: 4
-        radius: 2; color: pulseTheme.colors.border
+        radius: 2; color: level.colors.border
         Rectangle {
             width: parent.width * level.card.value; height: 4; radius: 2
-            color: pulseTheme.colors.accent
+            color: level.colors.accent
             Behavior on width { NumberAnimation { duration: level.reducedMotion ? 0 : 140; easing.type: Easing.OutCubic } }
         }
     }

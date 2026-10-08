@@ -17,8 +17,8 @@ class Settings:
 
 
 def default_config_path():
-    base = Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config")
-    return base / "pulse" / "config.toml"
+    from pulse.platforms import config_dir
+    return config_dir() / "config.toml"
 
 
 def load_settings(path, *, required=False):

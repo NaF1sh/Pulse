@@ -7,7 +7,7 @@ import sys
 
 def test_settings_pages_and_keyboard_toggle(tmp_path):
     root = Path(__file__).resolve().parents[1]
-    script = SCRIPT.replace('/tmp/pulse-review', str(tmp_path))
+    script = SCRIPT.replace('/tmp/pulse-review', tmp_path.as_posix())
     result = subprocess.run([sys.executable, '-c', script], cwd=root,
                             env=dict(os.environ, PYTHONPATH=str(root / 'src'),
                                      QT_QPA_PLATFORM='offscreen', QT_QUICK_BACKEND='software'),
@@ -34,7 +34,7 @@ engine = QQmlApplicationEngine()
 controller = Controller(engine)
 pets = Pets(engine)
 preferences = Preferences(controller, Settings(), Path('/tmp/pulse-review/history.db'), engine, path=Path('/tmp/pulse-review/preferences.json'))
-for name, value in [('pulsePets', pets), ('pulseTheme', qml_data(load_theme('default')[0])), ('reviewPreferences', preferences)]:
+for name, value in [('pulseController', controller), ('pulsePets', pets), ('pulseTheme', qml_data(load_theme('default')[0])), ('reviewPreferences', preferences)]:
     engine.rootContext().setContextProperty(name, value)
 source = Path('src/pulse/ui/qml').resolve()
 engine.loadData(b'import QtQuick\nSettingsWindow { preferences: reviewPreferences }', QUrl.fromLocalFile(str(source / 'Review.qml')))
@@ -43,7 +43,7 @@ from shiboken6 import wrapInstance, getCppPointer
 from PySide6.QtQuick import QQuickWindow
 window = wrapInstance(getCppPointer(engine.rootObjects()[0])[0], QQuickWindow)
 window.show()
-for tab in range(5):
+for tab in range(8):
     window.setProperty('tab', tab)
     QTest.qWait(180)
     assert not window.grabWindow().isNull()

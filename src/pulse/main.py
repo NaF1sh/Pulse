@@ -4,11 +4,14 @@ import os
 from pathlib import Path
 import subprocess
 import sys
+from pulse.platforms import is_windows
 
 
 def choose_backend(requested, qt_version):
     if requested != "auto":
         return requested
+    if is_windows():
+        return "windows"
     if os.environ.get("XDG_SESSION_TYPE") != "wayland":
         return "xcb"
     try:
@@ -22,7 +25,11 @@ def choose_backend(requested, qt_version):
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description=__doc__)
+    arguments = list(sys.argv[1:] if argv is None else argv)
+    if arguments and arguments[0] in ('task', 'run'):
+        from pulse.tasks.cli import main as task_main
+        return task_main(arguments)
+    parser = argparse.ArgumentParser(description=__doc__, epilog="Tasks: pulse run -- COMMAND [ARGS...]; pulse task --help")
     parser.add_argument("--backend", choices=["auto", "xcb", "layer-shell", "offscreen"], default="auto")
     sources = parser.add_mutually_exclusive_group()
     sources.add_argument("--demo", action="store_true", help="play scripted fake notifications")
@@ -31,6 +38,8 @@ def main(argv=None):
                         help="watch MPRIS music changes (enabled with --observe)")
     parser.add_argument("--volume", action=argparse.BooleanOptionalAction, default=None,
                         help="watch output volume changes (enabled with --observe)")
+    parser.add_argument("--tasks", action=argparse.BooleanOptionalAction, default=True,
+                        help="show explicitly published local task events (disabled in demo mode)")
     parser.add_argument("--settings", action="store_true", help="open the settings window at startup")
     parser.add_argument("--doctor", action="store_true", help="check desktop dependencies and exit")
     parser.add_argument("--debug", action="store_true")
@@ -54,6 +63,12 @@ def main(argv=None):
     if args.doctor:
         from pulse.diagnostics import report
         return report()
+    if is_windows() and (args.observe or args.music or args.volume):
+        parser.error('Desktop notification, music, and volume sources are Linux-only in this preview. On Windows, launch Pulse without these flags for the island and task events.')
+    if args.backend == 'windows' and not is_windows():
+        parser.error('--backend windows requires Windows')
+    if is_windows() and args.backend in ('xcb', 'layer-shell'):
+        parser.error('Use --backend auto or windows on Windows')
     if args.demo and (args.music or args.volume):
         parser.error("--demo cannot be combined with live --music or --volume")
     if args.list_pets:
@@ -116,7 +131,7 @@ def main(argv=None):
         os.environ["QT_QUICK_BACKEND"] = "software"
     elif args.renderer == "hardware":
         os.environ.pop("QT_QUICK_BACKEND", None)
-    elif backend == "xcb":
+    elif backend in ("xcb", "windows"):
         os.environ.setdefault("QT_QUICK_BACKEND", "software")
     if backend == "layer-shell":
         if choose_backend("auto", qVersion()) != "layer-shell":
@@ -172,6 +187,9 @@ def main(argv=None):
         app.aboutToQuit.connect(interactions.stop)
         QTimer.singleShot(0, interactions.start)
         interactions.failed.connect(lambda text: print(f"Pulse: {text}", file=sys.stderr, flush=True))
+    if args.tasks and not args.demo:
+        controller.tasks.start()
+        app.aboutToQuit.connect(controller.tasks.stop)
     preferences = Preferences(controller, settings, history_path, engine, path=preferences_path,
                               theme=args.theme or settings.theme,
                               reduced_motion=args.reduced_motion or settings.reduced_motion)
@@ -213,21 +231,24 @@ def main(argv=None):
     window.show()
     if session is not None:
         session.activated.connect(window.openSettings)
-    if args.observe and backend != 'offscreen':
+    if (args.observe or is_windows()) and backend != 'offscreen':
         preferences.enable_welcome()
     if args.settings or preferences.welcomeNeeded:
         window.openSettings()
     preferences.source_status('Mode', 'Demo — notifications are simulated' if args.demo else
-                              'Live desktop notifications' if args.observe else 'Companion only')
+                              'Live desktop notifications' if args.observe else 'Floating island and local tasks' if is_windows() else 'Companion only')
     preferences.source_status('Notification history', 'Saved locally on this device' if history is not None
                               else 'Not saved in this session')
     preferences.source_status('Window system', f'{backend} · Qt {qVersion()}')
+    if is_windows():
+        preferences.source_status('Desktop integrations', 'Windows preview: task events, agents, pets, backgrounds and timers. Windows notification capture, music and volume are not implemented yet.')
     live_sources = []
     music_enabled = args.music if args.music is not None else args.observe
     volume_enabled = args.volume if args.volume is not None else args.observe
     if music_enabled:
         from pulse.sources.mpris import Mpris
         music_source = Mpris(app)
+        controller.set_music_source(music_source)
         music_source.notification.connect(controller.set_media)
         music_source.cleared.connect(controller.clear_media)
         live_sources.append(('Music', music_source))

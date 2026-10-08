@@ -66,14 +66,13 @@ Live mode also watches MPRIS music players and PipeWire output volume:
 Start music in an MPRIS-compatible player to keep a compact now-playing card
 visible with track, artist and cover art when supplied by the player. Notifications
 and volume cards temporarily cover it; the latest track returns afterward.
-Pause, stop or close the player to return to the pet. Left-clicking the music
-card keeps it visible; playback controls remain in your music app.
+Paused players remain visible for resuming. Stop or close the player to return to the pet.
+Use Previous, Play/Pause, and Next in the island or Settings → Music; unavailable controls are disabled.
 Double-click the music card to hide it without pausing playback. Double-click
 the idle pet to restore it, or right-click and toggle Now playing in General settings.
 Hidden music stays hidden across track changes and restarts through saved preferences. This UI toggle requires the music source to be enabled.
 Change output volume or mute using your normal desktop
-controls to show a level card. These adapters are read-only; they do not control
-playback or volume. `wpctl` is required for volume; `busctl` is required for music.
+controls to show a level card. Volume feedback is read-only. Music buttons send bounded MPRIS commands to the selected player. `wpctl` is required for volume; `busctl` is required for music.
 The initial volume reading sets a baseline without showing a card. Repeated
 unchanged readings do not reopen the island. Music and volume cards follow
 DND/per-app rules (`Music` and `Audio`) but are not saved to notification history.
@@ -181,8 +180,9 @@ Offscreen rendering checks QML loading and timers; it cannot verify compositor p
 
 Right-click Pulse to open Settings, or launch with `./run.sh --observe --settings`.
 General includes Now playing, volume feedback, DND, and reduced motion. Pets and
-Appearance let you select a companion and palette. History shows the latest 100
-saved notifications, with Refresh and Clear history controls. Demo cards are not saved.
+Appearance let you select a companion, palette, custom/random color, or a local image background.
+History searches up to 1,000 saved notifications by app, title, or message, with Refresh and Clear controls.
+Focus offers timed work sessions and breaks; Music offers playback controls. Demo cards are not saved.
 
 Changes apply immediately and save in `~/.config/pulse/preferences.json`
 (respecting `XDG_CONFIG_HOME`); pets retain their existing `pet.json` storage.
@@ -206,3 +206,24 @@ entry's icon. If no icon is available, the selected pet remains visible.
 Website identity depends on what the browser includes in its desktop notification;
 Pulse does not infer a site from message text or fetch favicons from the network.
 Restart Pulse after updating to enable this display.
+
+
+### Custom notification backgrounds
+
+Appearance offers Theme, Color, Random, and Image modes with a live preview. Solid colors
+adjust the foreground for readable contrast. Random picks a different curated color when a
+new card appears; updates to the same card keep their color. Choose a downloaded PNG,
+JPEG, or WebP image (up to 32 MB / 24 megapixels). Pulse saves a resized PNG copy in the
+config directory's `backgrounds/` folder, so moving the original is safe. Crop position
+moves the image vertically; darkness and a text-area shade keep labels legible.
+Reset to theme restores the selected theme without deleting the imported image.
+
+### Focus sessions
+
+Open Focus, choose work and break durations, then Start focus. The countdown runs in the
+island beneath temporary notifications and above music. Click it to return to Focus.
+Pause/Resume preserves remaining time; End session or the island's × ends the session.
+When work completes, Pulse displays a persistent break reminder. Start break begins its
+countdown; completion invites another work session. Sessions and completion counts last
+for this run only. Time spent suspended counts toward running timers on Linux.
+Do not disturb is independent and can be changed in General.

@@ -35,7 +35,7 @@ Reactions should be recognizable across all 38 designs, brief where appropriate,
 - The × button dismisses only Pulse's copy without launching an app or invoking an action.
 - Additional supplied actions appear in a horizontally scrollable row. Cards without actions remain 280 × 54 pixels; action cards add 32 pixels of height.
 - Actions require KDE's `org.kde.NotificationManager.InvokeAction` API, discovered by introspection. Other desktops can use the installed-app fallback; generic action dispatch is not assumed.
-- Inline-reply requests are not implemented. Music and volume sources remain read-only.
+- Inline-reply requests are not implemented. Volume feedback remains read-only; music now supports capability-gated MPRIS controls.
 - This does not guarantee opening a particular conversation: that depends on the app's default action. A desktop-entry fallback opens the app itself.
 - A successful D-Bus call confirms dispatch, not that the app visibly raised a window. Compositor focus rules and app behavior need desktop verification.
 

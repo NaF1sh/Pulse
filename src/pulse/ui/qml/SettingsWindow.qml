@@ -11,12 +11,13 @@ Window {
     title: "Pulse — Settings"
     color: "#111216"
     property var preferences: null
+    property var controller: typeof pulseController !== "undefined" ? pulseController : null
     property int tab: 0
     readonly property bool welcoming: preferences ? preferences.welcomeNeeded : false
     readonly property color accent: pulseTheme.colors.accent
     readonly property color ink: "#f1f2f4"
     readonly property color secondary: "#999da9"
-    readonly property var sections: ["General", "Companion", "Appearance", "History", "Status"]
+    readonly property var sections: ["General", "Companion", "Appearance", "History", "Status", "Focus", "Music", "Tasks"]
     function open() { show(); requestActivate() }
     Shortcut { sequence: "Escape"; onActivated: settings.close() }
 
@@ -79,7 +80,7 @@ Window {
             Text { text: settings.sections[settings.tab]; color: settings.ink; font.pixelSize: 26; font.weight: Font.DemiBold }
             Text {
                 width: parent.width
-                text: ["Choose what deserves your attention.", "A little personality for your desktop.", "Set the mood. Keep the same quiet presence.", "Catch up on notifications at your own pace.", "See what is connected and ready."][settings.tab]
+                text: ["Choose what deserves your attention.", "A little personality for your desktop.", "Set the mood. Keep the same quiet presence.", "Catch up on notifications at your own pace.", "See what is connected and ready.", "One task at a time. Make space for a break.", "Keep your soundtrack within reach.", "Your agents and running jobs, in the island."][settings.tab]
                 color: settings.secondary; font.pixelSize: 12; wrapMode: Text.Wrap
             }
         }
@@ -100,7 +101,7 @@ Window {
                             {key:"dnd", title:"Do not disturb", detail:"Pause ordinary notifications. Critical alerts follow your preferences."},
                             {key:"motion", title:"Reduce motion", detail:"Use brief fades with fewer animations."},
                             {key:"quiet_plasma", title:"Quiet Plasma popups · experimental", detail:"Pause Plasma popups and sounds while Pulse is connected. Critical alerts may still appear. See Status for connection details."}
-                        ]
+                        ].filter(option => !preferences || preferences.desktopSources || option.key === "motion")
                         Rectangle {
                             required property var modelData
                             width: general.width; height: Math.max(82, detail.implicitHeight + 48)
@@ -155,46 +156,26 @@ Window {
                     }
                 }
             }
-            Column {
-                spacing: 12
-                Repeater {
-                    model: [{name:"default",label:"Lavender",accent:"#b3a0fa",detail:"Soft violet on charcoal"}, {name:"ocean",label:"Ocean",accent:"#76cce5",detail:"Cool blue, quiet focus"}, {name:"rose",label:"Rose",accent:"#f0a6be",detail:"A little warmth after dark"}]
-                    Button {
-                        id: palette
-                        required property var modelData
-                        width: parent.width; height: 86; hoverEnabled: true
-                        Accessible.name: modelData.label
-                        onClicked: if (preferences) preferences.selectTheme(modelData.name)
-                        background: Rectangle {
-                            radius: 12; color: palette.hovered ? "#252731" : "#1a1c22"
-                            border.color: palette.activeFocus || preferences && preferences.theme === palette.modelData.name ? palette.modelData.accent : "#2b2d36"
-                        }
-                        contentItem: Item {
-                            Rectangle { x: 12; anchors.verticalCenter: parent.verticalCenter; width: 48; height: 48; radius: 14; color: "#111216"; border.color: "#343640"
-                                Rectangle { anchors.centerIn: parent; width: 26; height: 6; radius: 3; color: palette.modelData.accent }
-                            }
-                            Column { x: 78; anchors.verticalCenter: parent.verticalCenter; spacing: 6
-                                Text { text: palette.modelData.label; color: settings.ink; font.pixelSize: 14; font.weight: Font.DemiBold }
-                                Text { text: palette.modelData.detail; color: settings.secondary; font.pixelSize: 11 }
-                            }
-                            Text { anchors.right: parent.right; anchors.rightMargin: 12; anchors.verticalCenter: parent.verticalCenter; text: "Selected"; font.pixelSize: 11; color: palette.modelData.accent; visible: preferences && preferences.theme === palette.modelData.name }
-                        }
-                    }
-                }
-            }
+            AppearancePage { preferences: settings.preferences }
             Item {
                 Row { id: historyToolbar; spacing: 8
                     QuietButton { text: "Refresh"; onClicked: if (preferences) preferences.refreshHistory() }
                     QuietButton { text: "Clear history"; destructive: true; onClicked: if (preferences) preferences.clearHistory() }
                 }
+                SurfaceField {
+                    id: historySearch; anchors.top: historyToolbar.bottom; anchors.topMargin: 12
+                    width: parent.width; placeholderText: "Search messages or apps…"
+                    Accessible.name: "Search notification history"
+                    onTextChanged: if (preferences) preferences.setHistoryQuery(text)
+                }
                 Column {
                     anchors.centerIn: parent; width: parent.width - 40; spacing: 12
                     visible: history.count === 0
-                    Text { width: parent.width; text: "All caught up"; horizontalAlignment: Text.AlignHCenter; color: settings.ink; font.pixelSize: 18; font.weight: Font.DemiBold }
-                    Text { width: parent.width; text: "Your saved notifications will appear here.\nEnjoy a quiet moment."; horizontalAlignment: Text.AlignHCenter; color: settings.secondary; font.pixelSize: 12; lineHeight: 1.5 }
+                    Text { width: parent.width; text: historySearch.text ? "No matching notifications" : "All caught up"; horizontalAlignment: Text.AlignHCenter; color: settings.ink; font.pixelSize: 18; font.weight: Font.DemiBold }
+                    Text { width: parent.width; text: historySearch.text ? "Try another app name or a word from the message." : "Your saved notifications will appear here.\nEnjoy a quiet moment."; horizontalAlignment: Text.AlignHCenter; color: settings.secondary; font.pixelSize: 12; lineHeight: 1.5 }
                 }
                 ListView {
-                    id: history; anchors.top: historyToolbar.bottom; anchors.topMargin: 16
+                    id: history; anchors.top: historySearch.bottom; anchors.topMargin: 16
                     anchors.bottom: parent.bottom; width: parent.width; clip: true; spacing: 8
                     boundsBehavior: Flickable.StopAtBounds
                     ScrollBar.vertical: ScrollBar {}
@@ -236,6 +217,9 @@ Window {
                     }
                 }
             }
+            FocusPage { controller: settings.controller }
+            MusicPage { controller: settings.controller; desktopSupported: !settings.preferences || settings.preferences.desktopSources }
+            TasksPage { controller: settings.controller }
         }
         Rectangle { x: 32; anchors.bottom: parent.bottom; anchors.bottomMargin: 54; width: parent.width - 64; height: 1; color: "#282a32" }
         Text { x: 32; anchors.bottom: parent.bottom; anchors.bottomMargin: 23; width: parent.width - 64; text: preferences ? preferences.status || "Preferences save automatically" : ""; color: settings.secondary; font.pixelSize: 11; elide: Text.ElideRight; textFormat: Text.PlainText }
@@ -247,7 +231,7 @@ Window {
         Column {
             x: 36; y: 38; width: parent.width - 72; spacing: 16
             Text { text: "Meet your quiet companion."; color: settings.ink; font.pixelSize: 24; font.weight: Font.DemiBold }
-            Text { width: parent.width; text: "Pulse keeps messages, music, and volume close at hand in a small island at the top of your screen."; color: settings.secondary; font.pixelSize: 13; wrapMode: Text.Wrap; lineHeight: 1.4 }
+            Text { width: parent.width; text: "Pulse keeps your tasks and connected agents close at hand in a small island at the top of your screen. Desktop notifications, music, and volume are also available on Linux."; color: settings.secondary; font.pixelSize: 13; wrapMode: Text.Wrap; lineHeight: 1.4 }
             Repeater {
                 model: [
                     {title: "A small gesture goes a long way", detail: "Right-click the pet for Settings. Click a message to open its app. Use × to dismiss it."},

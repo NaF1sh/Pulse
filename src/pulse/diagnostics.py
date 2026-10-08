@@ -10,6 +10,16 @@ def checks():
     def add(name, state, detail):
         results.append({'name': name, 'state': state, 'detail': detail})
     add('Python', 'ok' if sys.version_info >= (3, 12) else 'error', sys.version.split()[0])
+    from pulse.platforms import is_windows
+    if is_windows():
+        add('Platform', 'ok', 'Windows: floating island and local task events')
+        add('Desktop integrations', 'info', 'Windows notification capture, music, and volume are not implemented in this preview')
+        try:
+            from PySide6.QtCore import qVersion
+            add('Qt', 'ok', qVersion())
+        except ImportError:
+            add('Qt', 'error', 'Install Pulse dependencies to enable the interface')
+        return results
     add('Display', 'ok' if os.environ.get('DISPLAY') or os.environ.get('WAYLAND_DISPLAY') else 'warning',
         'Desktop session detected' if os.environ.get('DISPLAY') or os.environ.get('WAYLAND_DISPLAY')
         else 'No desktop display detected; use --backend offscreen for tests')

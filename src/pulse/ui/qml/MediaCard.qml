@@ -2,6 +2,7 @@ import QtQuick
 
 Item {
     id: media
+    property var colors: pulseTheme.colors
     property var card: ({title: "", body: "", artwork: "", status: "Playing"})
     property bool reducedMotion: false
     property bool playing: card.status !== "Paused"
@@ -9,15 +10,15 @@ Item {
 
     Rectangle {
         x: 12; y: 12; width: 48; height: 48; radius: 12
-        color: pulseTheme.colors.border
+        color: media.colors.border
         gradient: Gradient {
-            GradientStop { position: 0; color: Qt.darker(pulseTheme.colors.accent, 1.7) }
-            GradientStop { position: 1; color: pulseTheme.colors.background }
+            GradientStop { position: 0; color: Qt.darker(media.colors.accent, 1.7) }
+            GradientStop { position: 1; color: media.colors.background }
         }
         Text {
             anchors.centerIn: parent
             text: "♫"; font.pixelSize: 26
-            color: pulseTheme.colors.accent
+            color: media.colors.accent
             visible: cover.status !== Image.Ready
         }
         Image {
@@ -37,21 +38,21 @@ Item {
         spacing: 3
         Text {
             text: media.card.status === "Demo" ? "MUSIC · DEMO" : "NOW PLAYING"
-            color: pulseTheme.colors.accent
+            color: media.colors.accent
             font.pixelSize: 8; font.letterSpacing: 1.5; font.weight: Font.DemiBold
         }
         Text {
             width: parent.width
             text: media.card.title
             textFormat: Text.PlainText; elide: Text.ElideRight
-            color: pulseTheme.colors.title
+            color: media.colors.title
             font.pixelSize: pulseTheme.typography.title_size; font.weight: Font.DemiBold
         }
         Text {
             width: parent.width
             text: media.card.body
             textFormat: Text.PlainText; elide: Text.ElideRight
-            color: pulseTheme.colors.body; font.pixelSize: 11
+            color: media.colors.body; font.pixelSize: 11
         }
     }
     Row {
@@ -64,7 +65,7 @@ Item {
                 required property int index
                 width: 3; height: 10 + (index % 3) * 4
                 anchors.verticalCenter: parent.verticalCenter
-                radius: 1.5; color: pulseTheme.colors.accent
+                radius: 1.5; color: media.colors.accent
                 opacity: 0.9
                 transformOrigin: Item.Center
                 SequentialAnimation on scale {

@@ -10,17 +10,16 @@ read org.mpris.MediaPlayer2.Player properties. Discovery and sampling run every
 two seconds when the previous cycle finishes. Up to eight players are sampled
 sequentially. A playing player wins over paused players; the previous player is
 preferred when multiple players share that state. Title, artist, track ID or
-playback-status changes update a persistent now-playing card while playing.
+playback-status changes update a persistent now-playing card while playing or paused.
 Music is held as a background view outside the notification queue, so all
 temporary cards can interrupt it without priority tricks or starvation. On
 timeout/dismissal of the final temporary card, the latest playing track returns.
-Pause, stop, player disappearance or source disconnection clears the music view.
-Single-clicking music does not dismiss it. Double-clicking music hides it for the current run without pausing
+Stop, player disappearance or source disconnection clears the music view. Paused players stay available for resuming.
+Single-clicking music does not dismiss it. Double-clicking music hides it without pausing
 playback; double-click the idle pet or use Show music in the right-click panel
 to restore the latest track. Hidden music stays hidden across track updates.
-Notifications and volume still appear. Restarting resets this visibility toggle.
-An initially paused player does not produce
-a card. Position is not polled and no fake playback progress is displayed.
+Notifications and volume still appear. The visibility toggle persists across restarts.
+An initially paused player produces a card with a Play control when supported. Position is not polled and no fake playback progress is displayed.
 Metadata is rendered as bounded plain text. MPRIS artwork URLs support local
 files and HTTP(S); QML loads supplied cover art asynchronously with a music-note
 fallback. Absolute local artwork paths are converted to file URLs. When an image
@@ -77,3 +76,17 @@ and has no integration helper gets a placeholder rather than guessed artwork.
 Artwork from YouTube/Spotify is loaded only when the corresponding track supplies
 an artwork URL or, for YouTube, a recognized video link; there is no title-search
 service or Spotify account/API dependency.
+
+
+## Playback controls
+
+Island and Music-page controls target the selected MPRIS service. CanControl, CanPlay,
+CanPause, CanGoNext and CanGoPrevious gate the available buttons. Pulse sends Play or
+Pause according to the sampled status, and Previous/Next for track navigation; it does
+not send arbitrary methods. One command can run at a time with a 1.5-second process
+limit and a 1-second D-Bus timeout. Errors appear in the Music page. Successful commands
+request a fresh sample; normal polling continues. See the [MPRIS Player specification](https://specifications.freedesktop.org/mpris/latest/Player_Interface.html).
+
+Automated tests verify capability gating, selected-player routing, pause/resume commands,
+busy-state suppression, player disappearance, and real QML button dispatch with a fake
+transport. Actual player responses still require a desktop session.
