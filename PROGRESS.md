@@ -183,3 +183,41 @@ The test application's name is no longer shown on the notification card.
 - Desktop session-bus access, including a private test bus, is blocked in this development environment. Live action dispatch and app activation still require desktop testing.
 
 The next stages are explicitly ordered: interaction verification → exceptional pet/card transitions → native Wayland investigation → optional blur → possible inline replies. The 38-pet system remains central, with future activity reactions for music, charging, messages, completed downloads, mute, and DND. See [the interaction and polish roadmap](docs/interaction-and-polish.md) for implementation details, desktop test commands, and planned versus completed pet behaviors.
+
+### Notification source icons
+
+- Preserved app-icon and image-path hints and validated raw notification images.
+- Added compact source icons, with installed desktop-entry lookup and pet fallback.
+- Browser-supplied site images can appear without network favicon requests.
+- Added parser, local image, desktop-entry fallback, and real QML display coverage.
+
+### Interface refinement
+
+- Rebuilt Settings around a persistent sidebar, neutral surfaces, consistent spacing, and theme accents.
+- Replaced mouse-only settings controls with keyboard-accessible buttons and switches.
+- Added scrolling, companion selection indicators, theme previews, and a clearer history empty state.
+- Added notification hover feedback, readable text, pointer cursors, and discovery tooltips.
+- Rendered all four settings pages offscreen for visual inspection; added a keyboard-to-persistence regression check.
+- Release readiness still requires real desktop validation, onboarding, installation improvements, and packaging. Visual refinement alone does not establish production readiness.
+
+### Preview distribution and startup reliability
+
+- Added a user-level installer, isolated environment, app-menu launcher, update route, and ownership-aware uninstall that preserves preferences/history.
+- Added per-desktop-session duplicate-launch protection; subsequent launches request Settings in the existing instance. Crash recovery is covered by a process-level test.
+- Added first-run guidance and an unrecorded sample notification.
+- Added Settings → Status and `--doctor` diagnostics. Notification monitoring failures keep the UI available and retry every 15 seconds.
+- Recorded the real QML interface with synthetic demo data for the rewritten README; retained detailed configuration in `docs/usage.md`.
+- Added contribution guidance, an explicit release checklist, package metadata, and GitHub CI configuration.
+- Built and installed a wheel in an isolated location, validated the desktop entry, launched the installed package outside the checkout, and exercised uninstall. Installed the current build in the user's app menu using existing local dependencies.
+- Full desktop/session-bus verification and the first hosted CI run remain external checks; this is still an early preview.
+
+### Preview testing and Plasma popup control
+
+- Added opt-in, temporary Plasma popup inhibition tied to notification monitor readiness; no persistent Plasma preferences are changed.
+- Added teardown, reconnect, unsupported-server, and late-reply tests. Real Plasma suppression remains unverified because the desktop bus is inaccessible here.
+- Follow primary-screen changes and use the installed desktop identity for the Qt app. Added logical placement and 100%/150%/200% offscreen startup checks.
+- Added a synthetic guided desktop checker and draft 0.1.0a1 release notes.
+- Applied the user's MIT license choice to original code/documentation and excluded supplied reference images from release packages.
+- GitHub access from the shell still fails DNS resolution; hosted CI and publication cannot be verified until push succeeds.
+
+Validation for the preview preparation: **166 tests passed**, including scaling, monitor readiness, popup-control lifecycle, and primary-screen placement. Source and wheel artifacts build; source archives exclude the supplied reference images.

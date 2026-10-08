@@ -104,14 +104,14 @@ def test_monitor_handles_fragmented_json_and_multiple_lines():
     assert observer.buffer == b""
 
 
-def test_unavailable_bus_exits_with_clear_error():
+def test_unavailable_bus_stays_open_with_clear_error():
     root = Path(__file__).resolve().parents[1]
     env = dict(os.environ, PYTHONPATH=str(root / "src"),
                DBUS_SESSION_BUS_ADDRESS="unix:path=/tmp/pulse-nonexistent-test-bus")
     result = subprocess.run([sys.executable, "-m", "pulse.main", "--backend", "offscreen",
                              "--observe", "--no-history", "--quit-after", "3"],
                             env=env, capture_output=True, text=True, timeout=10)
-    assert result.returncode == 2
+    assert result.returncode == 0
     assert "Pulse observer unavailable:" in result.stderr
     assert "QProcess: Destroyed" not in result.stderr
 
@@ -131,3 +131,30 @@ def test_malformed_actions_do_not_break_notification(actions):
     message = call()
     message['payload']['data'][5] = actions
     assert NotificationDecoder().decode(message).actions == ()
+
+
+def test_notification_monitor_retries_after_connection_failure():
+    root = Path(__file__).resolve().parents[1]
+    env = dict(os.environ, PYTHONPATH=str(root / 'src'),
+               DBUS_SESSION_BUS_ADDRESS='unix:path=/tmp/pulse-nonexistent-retry-bus')
+    result = subprocess.run([sys.executable, '-m', 'pulse.main', '--backend', 'offscreen',
+                             '--observe', '--no-history', '--no-music', '--no-volume',
+                             '--quit-after', '17'], env=env, capture_output=True, text=True, timeout=25)
+    assert result.returncode == 0, result.stderr
+    assert result.stderr.count('Pulse observer unavailable:') >= 2
+    assert 'QProcess: Destroyed' not in result.stderr
+
+
+def test_monitor_failure_revokes_readiness_and_restart_clears_ids(monkeypatch):
+    from PySide6.QtCore import QProcess
+    observer = Observer()
+    readiness = []
+    observer.readinessChanged.connect(readiness.append)
+    observer.set_ready(True)
+    observer.failed.emit('Disconnected')
+    assert readiness == [True, False]
+    observer.decoder.server_ids[5] = 7
+    monkeypatch.setattr('pulse.sources.dbus_observer.shutil.which', lambda _: None)
+    observer.start()
+    assert observer.decoder.server_ids == {}
+    assert observer.monitor_ready is False

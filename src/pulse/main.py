@@ -32,6 +32,7 @@ def main(argv=None):
     parser.add_argument("--volume", action=argparse.BooleanOptionalAction, default=None,
                         help="watch output volume changes (enabled with --observe)")
     parser.add_argument("--settings", action="store_true", help="open the settings window at startup")
+    parser.add_argument("--doctor", action="store_true", help="check desktop dependencies and exit")
     parser.add_argument("--debug", action="store_true")
     parser.add_argument("--renderer", choices=["auto", "software", "hardware"], default="auto",
                         help="auto uses software on XWayland/X11 to avoid GLX startup failures")
@@ -50,6 +51,9 @@ def main(argv=None):
     parser.add_argument("--history-file", type=Path, help="override the SQLite history path")
     parser.add_argument("--no-history", action="store_true", help="do not save live notifications for this run")
     args = parser.parse_args(argv)
+    if args.doctor:
+        from pulse.diagnostics import report
+        return report()
     if args.demo and (args.music or args.volume):
         parser.error("--demo cannot be combined with live --music or --volume")
     if args.list_pets:
@@ -126,6 +130,20 @@ def main(argv=None):
     from PySide6.QtQml import QQmlApplicationEngine
     app = QGuiApplication([sys.argv[0]])
     app.setApplicationName("Pulse")
+    app.setDesktopFileName("io.github.NaF1sh.Pulse")
+    app.setQuitOnLastWindowClosed(False)
+    session = None
+    if backend != 'offscreen':
+        from pulse.runtime import Session
+        try:
+            session = Session(app)
+            if not session.acquire():
+                print('Pulse is already running. Opening Settings.', flush=True)
+                return 0
+        except OSError as error:
+            print(f'Pulse could not establish its desktop session: {error}', file=sys.stderr)
+            return 2
+        app.aboutToQuit.connect(session.close)
     engine = QQmlApplicationEngine()
     from pulse.ui.pets import Pets
     pets = Pets(engine, selected=args.pet)
@@ -158,6 +176,7 @@ def main(argv=None):
                               theme=args.theme or settings.theme,
                               reduced_motion=args.reduced_motion or settings.reduced_motion)
     engine.rootContext().setContextProperty("pulsePreferences", preferences)
+    controller.historyFailed.connect(lambda text: preferences.source_status('Notification history', text, problem=True))
 
     def update_appearance():
         selected_theme, warning = load_theme(preferences.theme, base_dir=config_path.parent)
@@ -192,8 +211,17 @@ def main(argv=None):
     integration = WindowIntegration(window, backend)
     window.syncMask()
     window.show()
-    if args.settings:
+    if session is not None:
+        session.activated.connect(window.openSettings)
+    if args.observe and backend != 'offscreen':
+        preferences.enable_welcome()
+    if args.settings or preferences.welcomeNeeded:
         window.openSettings()
+    preferences.source_status('Mode', 'Demo — notifications are simulated' if args.demo else
+                              'Live desktop notifications' if args.observe else 'Companion only')
+    preferences.source_status('Notification history', 'Saved locally on this device' if history is not None
+                              else 'Not saved in this session')
+    preferences.source_status('Window system', f'{backend} · Qt {qVersion()}')
     live_sources = []
     music_enabled = args.music if args.music is not None else args.observe
     volume_enabled = args.volume if args.volume is not None else args.observe
@@ -202,24 +230,57 @@ def main(argv=None):
         music_source = Mpris(app)
         music_source.notification.connect(controller.set_media)
         music_source.cleared.connect(controller.clear_media)
-        live_sources.append(music_source)
+        live_sources.append(('Music', music_source))
     if volume_enabled:
         from pulse.sources.audio import Audio
         audio_source = Audio(app)
         audio_source.notification.connect(controller.submit_system)
-        live_sources.append(audio_source)
-    for live_source in live_sources:
+        live_sources.append(('Volume', audio_source))
+    for name, live_source in live_sources:
+        preferences.source_status(name, 'Connecting…')
+        live_source.status.connect(lambda text, label=name: preferences.source_status(label, text))
         live_source.status.connect(lambda text: print(f"Pulse: {text}", flush=True))
         app.aboutToQuit.connect(live_source.stop)
         QTimer.singleShot(0, live_source.start)
     if args.observe:
+        from pulse.sources.plasma_popups import PlasmaPopups
+        popup_control = PlasmaPopups(app)
+        popup_control.status.connect(lambda text, problem: preferences.source_status('Plasma popups', text, problem=problem))
+        preferences.changed.connect(lambda: popup_control.set_enabled(preferences.quiet_plasma))
+        observer.readinessChanged.connect(popup_control.set_monitor_ready)
+        popup_control.set_enabled(preferences.quiet_plasma)
+        app.aboutToQuit.connect(popup_control.stop)
         observer.notification.connect(controller.submit)
         observer.closed.connect(controller.close)
         observer.status.connect(lambda text: print(f"Pulse: {text}", flush=True))
 
+        preferences.source_status('Notifications', 'Connecting…')
+        observer.status.connect(lambda text: preferences.source_status('Notifications', text))
+        retry_timer = QTimer(app)
+        retry_timer.setSingleShot(True)
+        retry_timer.setInterval(15000)
+        retry_timer.timeout.connect(observer.start)
+        retry_timer.timeout.connect(interactions.start)
+        app.aboutToQuit.connect(retry_timer.stop)
+        failure_shown = False
+
+        def retry_notifications():
+            retry_timer.stop()
+            observer.stop()
+            observer.start()
+            interactions.start()
+
+        preferences.retryRequested.connect(retry_notifications)
+
         def observer_failed(text):
+            nonlocal failure_shown
             print(f"Pulse observer unavailable: {text}", file=sys.stderr, flush=True)
-            app.exit(2)
+            preferences.source_status('Notifications', 'Connection unavailable. Retrying every 15 seconds. '
+                                      'Check that Pulse is running in your desktop session.', problem=True)
+            retry_timer.start()
+            if not failure_shown and backend != 'offscreen':
+                window.openSettings()
+                failure_shown = True
 
         observer.failed.connect(observer_failed)
         app.aboutToQuit.connect(observer.stop)

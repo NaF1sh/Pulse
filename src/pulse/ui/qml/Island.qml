@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Window
+import QtQuick.Controls
 Window {
     id: root
     width: 420; height: 160
@@ -109,7 +110,8 @@ Window {
         radius: root.open ? Math.min(pulseTheme.layout.radius, 18) : 15
         clip: root.open
         color: pulseTheme.colors.background
-        border.color: pulseTheme.colors.border; border.width: 1
+        border.color: islandMouse.containsMouse && root.open ? Qt.lighter(pulseTheme.colors.border, 1.5) : pulseTheme.colors.border; border.width: 1
+        Behavior on border.color { ColorAnimation { duration: root.reducedMotion ? 0 : 120 } }
         onXChanged: root.syncMask()
         onYChanged: root.syncMask()
         onRadiusChanged: root.syncMask()
@@ -137,7 +139,20 @@ Window {
             color: Qt.lighter(pulseTheme.colors.background, 1.3)
             visible: !root.mediaShown && !root.levelShown
             opacity: root.cardOpacity
-            Face { anchors.centerIn: parent; width: 25; height: 25; design: pulsePets.current; animate: false }
+            Image {
+                id: sourceIcon
+                objectName: "notificationSourceIcon"
+                anchors.centerIn: parent
+                width: 26; height: 26
+                source: root.displayed.icon || ""
+                fillMode: Image.PreserveAspectFit
+                visible: status === Image.Ready
+            }
+            Face {
+                anchors.centerIn: parent; width: 25; height: 25
+                design: pulsePets.current; animate: false
+                visible: sourceIcon.status !== Image.Ready
+            }
         }
         Column {
             id: content
@@ -151,7 +166,7 @@ Window {
                 id: heading
                 width: parent.width
                 text: root.displayed.title
-                color: pulseTheme.colors.title; font.pixelSize: 12; font.weight: Font.DemiBold
+                color: pulseTheme.colors.title; font.pixelSize: 13; font.weight: Font.DemiBold
                 elide: Text.ElideRight; textFormat: Text.PlainText
             }
             Text {
@@ -159,7 +174,7 @@ Window {
                 width: parent.width
                 text: pulseController.actionError || root.displayed.body || (pulseController.active ? "" : "Waiting for notifications")
                 visible: text.length > 0
-                color: pulseTheme.colors.body; font.pixelSize: 11
+                color: pulseTheme.colors.body; font.pixelSize: 12
                 wrapMode: Text.NoWrap; maximumLineCount: 1
                 elide: Text.ElideRight; textFormat: Text.PlainText
             }
@@ -217,6 +232,10 @@ Window {
             id: islandMouse
             anchors.fill: parent
             hoverEnabled: true
+            cursorShape: !pulseController.active || root.displayed.canOpen ? Qt.PointingHandCursor : Qt.ArrowCursor
+            ToolTip.visible: containsMouse && !root.open
+            ToolTip.delay: 900
+            ToolTip.text: "Right-click for settings · Double-click to toggle music"
             acceptedButtons: Qt.LeftButton | Qt.RightButton
             onClicked: mouse => {
                 if (mouse.button === Qt.RightButton) { if (settingsWindow.preferences) root.openSettings(); else { petPicker.show(); petPicker.requestActivate() } }
@@ -245,6 +264,10 @@ Window {
             Text { anchors.centerIn: parent; text: "×"; font.pixelSize: 15; color: pulseTheme.colors.muted }
             MouseArea {
                 id: dismissMouse; anchors.fill: parent; hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                ToolTip.visible: containsMouse
+                ToolTip.delay: 650
+                ToolTip.text: "Dismiss"
                 onClicked: pulseController.close(root.displayed.id)
             }
         }
@@ -267,6 +290,7 @@ Window {
                         Text { id: actionLabel; anchors.centerIn: parent; width: Math.min(120, implicitWidth); text: modelData.label; textFormat: Text.PlainText; elide: Text.ElideRight; color: pulseTheme.colors.title; font.pixelSize: 10 }
                         MouseArea {
                             id: actionMouse; anchors.fill: parent; hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
                             enabled: !root.displayed.busy
                             onClicked: pulseController.activate(root.displayed.id, modelData.key)
                         }

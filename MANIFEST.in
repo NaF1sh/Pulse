@@ -1,0 +1,8 @@
+include install.sh run.sh config.example.toml CONTRIBUTING.md
+recursive-include assets *.svg
+recursive-include tools *.py
+recursive-include docs *.md *.png *.gif *.txt
+recursive-include themes *.json
+
+include LICENSE ASSET_NOTICE.md PROGRESS.md
+prune docs/references

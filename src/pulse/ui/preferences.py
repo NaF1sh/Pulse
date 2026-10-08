@@ -16,6 +16,8 @@ class Preferences(QObject):
     changed = Signal()
     appearanceChanged = Signal()
     historyChanged = Signal()
+    sourcesChanged = Signal()
+    retryRequested = Signal()
 
     @staticmethod
     def read(path):
@@ -24,7 +26,7 @@ class Preferences(QObject):
             if not isinstance(data, dict):
                 return {}
             return {key: value for key, value in data.items()
-                    if (key in ('music', 'volume', 'dnd', 'motion') and type(value) is bool)
+                    if (key in ('music', 'volume', 'dnd', 'motion', 'onboarded', 'quiet_plasma') and type(value) is bool)
                     or (key == 'theme' and value in ('default', 'ocean', 'rose'))}
         except (OSError, ValueError):
             return {}
@@ -40,6 +42,8 @@ class Preferences(QObject):
         self._motion = reduced_motion
         self._status = ''
         self._entries = []
+        self._sources = {}
+        self._welcome_enabled = False
         controller._music_visible = self.saved.get('music', True)
         controller.volume_visible = self.saved.get('volume', True)
         controller.musicVisibilityChanged.connect(self._music_changed)
@@ -86,6 +90,8 @@ class Preferences(QObject):
 
     @Property(str, notify=changed)
     def status(self):
+        if any(source['problem'] for source in self._sources.values()):
+            return 'A connection needs attention — open Status for details'
         return self._status
 
     @Slot(str)
@@ -104,6 +110,8 @@ class Preferences(QObject):
             if self.controller.media and not self.controller.manager.rules.allows(self.controller.media):
                 self.controller.clear_media()
             value = self.dnd
+        elif key == 'quiet_plasma':
+            value = not self.quiet_plasma
         elif key == 'motion':
             self._motion = not self._motion
             value = self._motion
@@ -151,3 +159,40 @@ class Preferences(QObject):
     @Slot()
     def clearHistory(self):
         self.access_history(clear=True)
+
+    @Property(bool, notify=changed)
+    def welcomeNeeded(self):
+        return self._welcome_enabled and not self.saved.get('onboarded', False)
+
+    def enable_welcome(self):
+        self._welcome_enabled = True
+        self.changed.emit()
+
+    @Slot()
+    def completeWelcome(self):
+        self.save('onboarded', True)
+
+    @Slot()
+    def previewNotification(self):
+        from pulse.core.models import Notification
+        self.controller.submit(Notification(-100, 'Pulse', 'A little less interruption',
+                                            'Your notifications, close at hand.', timeout=6), record_history=False)
+        self._status = 'Preview paused by Do not disturb' if self.dnd else 'Preview shown on your desktop'
+        self.changed.emit()
+
+    @Property('QVariantList', notify=sourcesChanged)
+    def sources(self):
+        return list(self._sources.values())
+
+    def source_status(self, name, detail, *, problem=False):
+        self._sources[name] = {'name': name, 'detail': detail, 'problem': problem}
+        self.sourcesChanged.emit()
+        self.changed.emit()
+
+    @Slot()
+    def retryConnections(self):
+        self.retryRequested.emit()
+
+    @Property(bool, notify=changed)
+    def quiet_plasma(self):
+        return self.saved.get('quiet_plasma', False)

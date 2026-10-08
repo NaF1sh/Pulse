@@ -15,6 +15,8 @@ class Controller(QObject):
         self.manager = Manager(rules=rules)
         self.history = history
         self.interactions = None
+        from pulse.ui.notification_icons import NotificationIcons
+        self.icons = NotificationIcons()
         self._action_error = ""
         self.media = None
         self._music_visible = True
@@ -66,6 +68,7 @@ class Controller(QObject):
                 "valueLabel": item.value_label if item else "",
                 "status": item.status if item else "",
                 "artwork": item.artwork if item else "",
+                "icon": self.icons.resolve(item) if item else "",
                 "id": item.id if item else -1,
                 "canOpen": bool(item and self.interactions and self.interactions.can_open(item)),
                 "actions": [{"key": key, "label": label} for key, label in item.actions if key != "default"]

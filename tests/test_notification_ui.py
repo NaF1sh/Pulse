@@ -16,6 +16,7 @@ from PySide6.QtQml import QQmlApplicationEngine
 from PySide6.QtTest import QTest
 from pulse.core.models import Notification
 from pulse.ui.controller import Controller
+from pulse.ui.notification_icons import raw_image_url
 from pulse.ui.pets import Pets
 from pulse.themes.loader import load_theme
 from pulse.themes.schema import qml_data
@@ -31,7 +32,8 @@ window = engine.rootObjects()[0]
 window.show()
 QTest.qWait(50)
 surface = window.findChild(QObject, 'islandSurface')
-controller.submit(Notification(1, 'notify-send', 'Alex', 'Hey! Are you joining us tonight?'))
+icon = raw_image_url([1, 1, 4, True, 8, 4, [255, 0, 0, 255]])
+controller.submit(Notification(1, 'notify-send', 'Alex', 'Hey! Are you joining us tonight?', icon_image=icon))
 widths = []
 for _ in range(20):
     QTest.qWait(20)
@@ -39,6 +41,9 @@ for _ in range(20):
 assert all(a <= b + 0.1 for a, b in zip(widths, widths[1:])), widths
 assert abs(widths[-1] - 280) < 0.1
 assert surface.property('height') == 54
+source_icon = window.findChild(QObject, 'notificationSourceIcon')
+assert source_icon.property('visible')
+assert source_icon.property('source').toString() == icon
 assert window.property('displayed').toVariant()['title'] == 'Alex'
 assert not any(child.property('text') == 'notify-send' for child in window.findChildren(QObject))
 controller.dismiss()

@@ -66,3 +66,36 @@ def test_invalid_preferences_and_unsaved_overrides(tmp_path):
     assert 'theme' not in saved and 'motion' not in saved
     preferences.selectTheme('rose')
     assert Preferences.read(path)['theme'] == 'rose'
+
+
+def test_welcome_completion_persists_and_preview_is_not_history(tmp_path):
+    controller, preferences = make_preferences(tmp_path)
+    history = History(preferences.history_path)
+    controller.history = history
+    preferences.enable_welcome()
+    assert preferences.welcomeNeeded
+    preferences.previewNotification()
+    assert controller.item.app == 'Pulse'
+    assert history.recent() == []
+    preferences.completeWelcome()
+    assert not preferences.welcomeNeeded
+    _, restored = make_preferences(tmp_path)
+    restored.enable_welcome()
+    assert not restored.welcomeNeeded
+    history.close()
+
+
+def test_source_status_replaces_old_failure(tmp_path):
+    _, preferences = make_preferences(tmp_path)
+    preferences.source_status('Notifications', 'Disconnected', problem=True)
+    preferences.source_status('Notifications', 'Ready')
+    assert preferences.sources == [{'name': 'Notifications', 'detail': 'Ready', 'problem': False}]
+
+
+def test_quiet_plasma_is_opt_in_and_persists(tmp_path):
+    _, preferences = make_preferences(tmp_path)
+    assert not preferences.quiet_plasma
+    preferences.toggle('quiet_plasma')
+    assert preferences.quiet_plasma
+    _, restored = make_preferences(tmp_path)
+    assert restored.quiet_plasma

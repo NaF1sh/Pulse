@@ -31,6 +31,9 @@ class Notification:
     desktop_entry: str = ""
     actions: tuple[tuple[str, str], ...] = ()
 
+    icon: str = ""
+    icon_image: str = ""
+
     def __post_init__(self):
         import math
         if not math.isfinite(self.value) or not 0 <= self.value <= 1:

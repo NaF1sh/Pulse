@@ -91,6 +91,18 @@ class NotificationDecoder:
         desktop_entry = entry_hint.get("data", "") if isinstance(entry_hint, dict) else ""
         if not isinstance(desktop_entry, str) or len(desktop_entry) > 256:
             desktop_entry = ""
+        from pulse.ui.notification_icons import raw_image_url
+        icon_image = ''
+        for name in ('image-data', 'image_data', 'icon_data'):
+            hint = hints.get(name, {})
+            if isinstance(hint, dict):
+                icon_image = raw_image_url(hint.get('data'))
+                if icon_image:
+                    break
+        image_path = hints.get('image-path', hints.get('image_path', {}))
+        image_path = image_path.get('data', '') if isinstance(image_path, dict) else ''
+        icon = image_path if isinstance(image_path, str) and image_path else icon
+        icon = icon if isinstance(icon, str) and len(icon) <= 4096 else ''
         parsed_actions = []
         if (isinstance(actions, list) and len(actions) % 2 == 0
                 and all(isinstance(value, str) for value in actions)):
@@ -106,11 +118,13 @@ class NotificationDecoder:
         return Notification(local_id, clean_text(app, 80) or "Application",
                             clean_text(title, 160) or "Notification",
                             clean_text(body, 600), priority, seconds,
-                            desktop_entry=desktop_entry, actions=tuple(parsed_actions))
+                            desktop_entry=desktop_entry, actions=tuple(parsed_actions),
+                            icon=icon, icon_image=icon_image)
 
 
 class Observer(QObject):
     notification = Signal(object)
+    readinessChanged = Signal(bool)
     closed = Signal(int)
     metadataChanged = Signal()
     status = Signal(str)
@@ -128,8 +142,26 @@ class Observer(QObject):
         self.stopping = False
         self.error = ""
         self.received = False
+        self.monitor_ready = False
+        self.failed.connect(lambda _: self.set_ready(False))
+
+    def set_ready(self, ready):
+        if self.monitor_ready != ready:
+            self.monitor_ready = ready
+            self.readinessChanged.emit(ready)
 
     def start(self):
+        if self.process.state() != QProcess.NotRunning:
+            return
+        self.set_ready(False)
+        self.stopping = False
+        self.error = ''
+        self.received = False
+        self.buffer.clear()
+        # Server IDs from a previous monitor connection cannot be trusted.
+        self.decoder.calls.clear()
+        self.decoder.server_ids.clear()
+        self.metadataChanged.emit()
         executable = shutil.which("busctl")
         if executable is None:
             self.failed.emit("busctl is required for observer mode (install systemd tools).")
@@ -154,6 +186,7 @@ class Observer(QObject):
                 continue
             if not self.received:
                 self.received = True
+                self.set_ready(True)
                 self.status.emit("Observer receiving; Plasma still handles notifications.")
             if type(item) is int:
                 self.closed.emit(item)
@@ -167,6 +200,7 @@ class Observer(QObject):
         text = bytes(self.process.readAllStandardError()).decode(errors="replace").strip()
         self.error = (self.error + " " + text)[-2000:]
         if "Monitoring bus message stream" in text:
+            self.set_ready(True)
             self.status.emit("Observer ready; Plasma still handles notifications.")
 
     def finished(self, code, exit_status):
@@ -174,6 +208,7 @@ class Observer(QObject):
             self.failed.emit(self.error.strip() or f"Notification monitor exited ({code}).")
 
     def stop(self):
+        self.set_ready(False)
         self.stopping = True
         if self.process.state() != QProcess.NotRunning:
             self.process.terminate()
