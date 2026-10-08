@@ -184,3 +184,57 @@ def test_installed_apps_registration_uses_external_python_and_ownership(tmp_path
     registry.values['InstallLocation'] = str(paths['root'])
     installer.unregister_uninstaller(paths)
     assert registry.deleted
+
+
+def test_python_314_is_accepted_and_reports_selected_interpreter(monkeypatch):
+    import json
+    installer = load_installer()
+    info = dict(version=[3, 14, 0], executable='C:/Python314/python.exe', implementation='CPython', bits=64)
+    monkeypatch.setattr(installer.subprocess, 'check_output', lambda *a, **k: json.dumps(info))
+    assert installer.python_info('py') == info
+    info['version'] = [3, 11, 9]
+    import pytest
+    with pytest.raises(ValueError, match='Selected Python 3.11.9'):
+        installer.python_info('python')
+
+
+def test_install_step_saves_actual_failure(tmp_path, capsys):
+    import pytest
+    installer = load_installer()
+    log = tmp_path / 'install.log'
+    with pytest.raises(ValueError, match='Installing dependencies failed'):
+        installer.install_step('Installing dependencies', [sys.executable, '-c',
+            'import sys; print("Dependency download failed", file=sys.stderr); sys.exit(7)'], log)
+    assert 'Dependency download failed' in log.read_text()
+    assert 'Dependency download failed' in capsys.readouterr().out
+
+
+def test_stale_pulse_shortcut_is_repaired_but_unrelated_link_is_preserved(tmp_path, monkeypatch):
+    import json
+    import pytest
+    from types import SimpleNamespace
+    installer = load_installer()
+    paths = dict(root=tmp_path / 'Pulse/app', shortcut=tmp_path / 'Pulse.lnk')
+    paths['shortcut'].write_bytes(b'existing shortcut')
+    target = paths['root'] / 'venv/Scripts/pulse-island.exe'
+    response = dict(target=str(target), arguments='')
+    monkeypatch.setattr(installer.subprocess, 'run', lambda *a, **k: SimpleNamespace(stdout=json.dumps(response)))
+    steps = []
+    monkeypatch.setattr(installer, 'install_step', lambda label, cmd, log: steps.append(label))
+    monkeypatch.setattr(installer, 'shortcut', lambda paths: paths['shortcut'].write_bytes(b'repaired shortcut'))
+    monkeypatch.setattr(installer, 'register_uninstaller', lambda paths, python: None)
+    assert installer.is_pulse_shortcut(paths)
+    response['arguments'] = '--unexpected-command'
+    assert not installer.is_pulse_shortcut(paths)
+    response['arguments'] = ''
+    response['target'] = str(tmp_path / 'OtherApp.exe')
+    with pytest.raises(ValueError, match='leaving it untouched'):
+        installer.install(paths, sys.executable)
+    assert not paths['root'].exists()
+    assert paths['shortcut'].read_bytes() == b'existing shortcut'
+    assert not steps
+    response['target'] = str(target)
+    installer.install(paths, sys.executable)
+    assert paths['shortcut'].read_bytes() == b'repaired shortcut'
+    assert installer.manifest_at(paths['root'])['shortcut_sha256']
+    assert len(steps) == 3

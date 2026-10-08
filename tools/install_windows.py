@@ -95,21 +95,73 @@ def ensure_not_running(paths):
                          'and let any Pulse task commands finish. Then run uninstall again')
 
 
+def python_info(python):
+    output = subprocess.check_output([python, '-c',
+        'import json, platform, struct, sys; print(json.dumps(dict('
+        'version=list(sys.version_info[:3]), executable=sys.executable, '
+        'implementation=platform.python_implementation(), bits=struct.calcsize("P")*8)))'], text=True)
+    info = json.loads(output)
+    if tuple(info['version']) < (3, 12):
+        raise ValueError(f"Selected Python {'.'.join(map(str, info['version']))} at {info['executable']}; "
+                         'Pulse requires Python 3.12 or newer')
+    return info
+
+
+def install_step(label, command, log):
+    print(f'\n{label}…', flush=True)
+    with log.open('a', encoding='utf-8') as output:
+        output.write(f'\n{label}\n')
+        output.flush()
+        # Keep pip's real error visible and saved, including on dependency/network failures.
+        env = dict(os.environ, PYTHONIOENCODING='utf-8', PYTHONUNBUFFERED='1')
+        with subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                              text=True, encoding='utf-8', errors='replace', env=env) as process:
+            for line in process.stdout:
+                output.write(line)
+                output.flush()
+                print(line, end='', flush=True)
+            code = process.wait()
+        if code:
+            raise ValueError(f'{label} failed (exit {code}). See the error above and {log}')
+
+
+def is_pulse_shortcut(paths):
+    """Recognize an old Pulse link even if its installation manifest is gone."""
+    script = ('[Console]::OutputEncoding=[System.Text.UTF8Encoding]::new($false);'
+              '$s=(New-Object -ComObject WScript.Shell).CreateShortcut($env:PULSE_SHORTCUT);'
+              '@{target=$s.TargetPath;arguments=$s.Arguments} | ConvertTo-Json -Compress')
+    result = subprocess.run(['powershell.exe', '-NoProfile', '-NonInteractive', '-Command', script],
+                            env=dict(os.environ, PULSE_SHORTCUT=str(paths['shortcut'])),
+                            capture_output=True, text=True, encoding='utf-8', check=True, timeout=15)
+    try:
+        link = json.loads(result.stdout.lstrip('\ufeff'))
+        target = link.get('target')
+        return (isinstance(target, str) and bool(target) and not link.get('arguments')
+                and Path(target).resolve() == (paths['root'] / 'venv/Scripts/pulse-island.exe').resolve())
+    except (ValueError, AttributeError, OSError):
+        return False
+
+
 def install(paths, python):
     root = paths['root']
     owned = manifest_at(root)
     if root.exists() and not owned:
         raise ValueError(f'Refusing to replace an existing non-Pulse folder: {root}')
     if paths['shortcut'].exists() and not owned:
-        raise ValueError(f'Refusing to replace an existing shortcut: {paths["shortcut"]}')
+        if not is_pulse_shortcut(paths):
+            raise ValueError(f'The existing shortcut does not point to this Pulse installation; '
+                             f'leaving it untouched: {paths["shortcut"]}')
+        print('Found a leftover Pulse shortcut. It will be repaired after installation.', flush=True)
     if owned:
         ensure_not_running(paths)
     root.mkdir(parents=True, exist_ok=True)
     manifest = root / 'install.json'
     manifest.write_text(json.dumps(owned or {'installer': MARKER}), encoding='utf-8')
-    subprocess.run([python, '-m', 'venv', str(root / 'venv')], check=True)
+    log = root.parent / 'install.log'
+    install_step('Creating the Pulse environment', [python, '-m', 'venv', str(root / 'venv')], log)
     interpreter = root / 'venv/Scripts/python.exe'
-    subprocess.run([str(interpreter), '-m', 'pip', 'install', str(ROOT)], check=True)
+    install_step('Updating pip', [str(interpreter), '-m', 'pip', 'install', '--upgrade', 'pip'], log)
+    install_step('Installing Pulse and its dependencies', [str(interpreter), '-m', 'pip', 'install', str(ROOT)], log)
     shutil.copyfile(ROOT / 'assets/pulse.ico', root / 'pulse.ico')
     paths['shortcut'].parent.mkdir(parents=True, exist_ok=True)
     shortcut(paths)
@@ -165,12 +217,28 @@ def main(argv=None):
         if args.uninstall:
             uninstall(paths)
         else:
-            version = subprocess.check_output([args.python, '-c', 'import sys; print(sys.version_info >= (3,12))'], text=True).strip()
-            if version != 'True':
-                raise ValueError('Install Python 3.12 or newer first.')
-            install(paths, args.python)
+            info = python_info(args.python)
+            description = (f"Using {info['implementation']} {'.'.join(map(str, info['version']))} "
+                           f"({info['bits']}-bit): {info['executable']}")
+            print(description, flush=True)
+            log = paths['root'].parent / 'install.log'
+            log.parent.mkdir(parents=True, exist_ok=True)
+            log.write_text(description + '\n', encoding='utf-8')
+            install(paths, info['executable'])
     except (ValueError, OSError, subprocess.SubprocessError) as error:
-        print(f'Pulse error: {error}', file=sys.stderr)
+        detail = f'Pulse error: {error}'
+        if isinstance(error, subprocess.CalledProcessError) and error.stderr:
+            detail += '\n' + str(error.stderr)
+        print(detail, file=sys.stderr)
+        if not args.uninstall:
+            log = paths['root'].parent / 'install.log'
+            try:
+                log.parent.mkdir(parents=True, exist_ok=True)
+                with log.open('a', encoding='utf-8') as output:
+                    output.write(detail + '\n')
+                print(f'Installation log: {log}', file=sys.stderr)
+            except OSError:
+                pass
         if args.interactive:
             input('Press Enter to close this window…')
         return 1

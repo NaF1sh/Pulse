@@ -6,7 +6,7 @@ This is a source-installer preview, not a signed, self-contained executable.
 
 ## Install on Windows
 
-Target: Windows 10/11 x64 with Python 3.12 or newer and its `py` launcher installed.
+Target: Windows 10/11 x64 with Python 3.12 or newer available through `py` or `python`. Python 3.14 passes the version requirement.
 Internet access is required to download Python dependencies during installation.
 
 1. Download the [Windows source ZIP](https://github.com/NaF1sh/Pulse/archive/refs/heads/main.zip), extract it, and open `Pulse-main`. A separately published `Pulse-Windows-preview.zip` release bundle can also be used.
@@ -28,6 +28,20 @@ python tools/install_windows.py
 The installer creates `%LOCALAPPDATA%\Pulse\app\venv` and a Start-menu shortcut.
 It does not require administrator privileges, change PATH, or register login startup.
 Launching Pulse again opens Settings in the existing instance.
+
+## Installation troubleshooting
+
+The installer prints the exact Python version and executable it selects. Installation
+output is saved to `%LOCALAPPDATA%\Pulse\install.log`; the final error identifies the
+failed step. Dependency downloads require internet access. If an older installer says
+“Python 3.12 or newer is required” after another error, read the preceding error: that
+older launcher incorrectly used the same message for every failure.
+
+A leftover Start-menu shortcut from an earlier Pulse installation is repaired automatically
+when its target is the expected Pulse launcher and it has no extra arguments. Unrelated
+shortcuts and unowned app folders are preserved. If the Python launcher selects a different
+interpreter from the one you intended, run `py -3.14 tools/install_windows.py` from the
+extracted folder, or invoke the desired Python executable by its full path.
 
 ## Music
 

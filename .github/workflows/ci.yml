@@ -41,6 +41,9 @@ jobs:
             dist/*.whl
   windows:
     runs-on: windows-latest
+    strategy:
+      matrix:
+        python: ['3.12', '3.14']
     env:
       QT_QPA_PLATFORM: offscreen
       QT_QUICK_BACKEND: software
@@ -49,7 +52,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: ${{ matrix.python }}
       - name: Install Windows dependencies
         run: python -m pip install -e '.[dev]' build
       - name: Test Windows tasks, storage, single instance, and QML
@@ -66,6 +69,9 @@ jobs:
       - name: Install and check Windows launchers
         run: |
           python tools/install_windows.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -c "from tools.install_windows import is_pulse_shortcut, locations; assert is_pulse_shortcut(locations())"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           $pulse = "$env:LOCALAPPDATA\Pulse\app\venv\Scripts\pulse.exe"
           & $pulse --doctor
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -78,8 +84,9 @@ jobs:
           if (Test-Path $entry) { throw 'Uninstall entry was not removed' }
           if (Test-Path "$env:LOCALAPPDATA\Pulse\app") { throw 'App files were not removed' }
       - uses: actions/upload-artifact@v4
+        if: matrix.python == '3.12'
         with:
-          name: Pulse-Windows-preview
+          name: Pulse-Windows-preview-${{ matrix.python }}
           path: dist/Pulse-Windows-preview.zip
 
   release:
