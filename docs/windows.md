@@ -9,7 +9,7 @@ This is a source-installer preview, not a signed, self-contained executable.
 Target: Windows 10/11 x64 with Python 3.12 or newer and its `py` launcher installed.
 Internet access is required to download Python dependencies during installation.
 
-1. Extract `Pulse-Windows-preview.zip`, or clone/download the repository.
+1. Download the [Windows source ZIP](https://github.com/NaF1sh/Pulse/archive/refs/heads/main.zip), extract it, and open `Pulse-main`. A separately published `Pulse-Windows-preview.zip` release bundle can also be used.
 2. Double-click `install-windows.cmd` in the extracted folder.
 3. Open **Pulse** from the Start menu.
 

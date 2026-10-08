@@ -54,15 +54,15 @@ Focus sessions run while Pulse is open; quitting ends them. Notifications tempor
 
 ## Downloads
 
-- **[Download Windows preview (ZIP)](https://github.com/NaF1sh/Pulse/releases/download/v0.2.0a1/Pulse-Windows-preview.zip)** — Python 3.12+ required; extract and run `install-windows.cmd`.
-- **[Download Linux source (tar.gz)](https://github.com/NaF1sh/Pulse/releases/download/v0.2.0a1/pulse_island-0.2.0a1.tar.gz)** — extract and run `install.sh`.
-- [Release notes and all assets](https://github.com/NaF1sh/Pulse/releases/tag/v0.2.0a1)
+- **[Download Windows source preview (ZIP)](https://github.com/NaF1sh/Pulse/archive/refs/heads/main.zip)** — Python 3.12+ required; extract and run `install-windows.cmd`.
+- **[Download Linux source (tar.gz)](https://github.com/NaF1sh/Pulse/archive/refs/heads/main.tar.gz)** — extract and run `install.sh`.
+- [Preview release notes](docs/release-notes-0.2.0a1.md)
 
-The Windows download is a source-installer preview, not a standalone executable. Windows desktop notification capture, music, and volume are not implemented yet.
+These links download the latest code from `main` directly, without requiring a release upload. Extract the archive and open the `Pulse-main` folder. The Windows download is a source-installer preview, not a standalone executable. Windows desktop notification capture, music, and volume are not implemented yet.
 
 ## Install
 
-**Windows:** extract the [Windows preview ZIP](https://github.com/NaF1sh/Pulse/releases/download/v0.2.0a1/Pulse-Windows-preview.zip), run `install-windows.cmd`, and open Pulse from Start. Requires Python 3.12+; task monitoring, pets, and backgrounds are implemented. Native Windows notification/music/volume integrations are not yet implemented, and Windows desktop validation remains outstanding. See [Windows setup and scope](docs/windows.md).
+**Windows:** extract the [Windows preview ZIP](https://github.com/NaF1sh/Pulse/archive/refs/heads/main.zip), run `install-windows.cmd`, and open Pulse from Start. Requires Python 3.12+; task monitoring, pets, and backgrounds are implemented. Native Windows notification/music/volume integrations are not yet implemented, and Windows desktop validation remains outstanding. See [Windows setup and scope](docs/windows.md).
 
 **Linux:** requires **Python 3.12+**. The installer creates a private Python environment, downloads dependencies, and adds Pulse to your app menu. No `sudo` is needed.
 
