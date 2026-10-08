@@ -27,6 +27,7 @@ Rectangle {
                 Row { spacing: 6
                     SurfaceButton { text: modelData.state.startsWith("needs-") ? "Review request" : "Open result"; visible: modelData.hasTarget; implicitHeight: 28; padding: 7; onClicked: drawer.tasks.open(modelData.id) }
                     SurfaceButton { text: "Dismiss alert"; visible: !modelData.dismissed; implicitHeight: 28; padding: 7; onClicked: drawer.tasks.dismiss(modelData.id) }
+                    SurfaceButton { text: "Remove"; implicitHeight: 28; padding: 7; onClicked: drawer.tasks.remove(modelData.id) }
                     Text { anchors.verticalCenter: parent.verticalCenter; text: modelData.updatedLabel; color: "#858a99"; font.pixelSize: 9 }
                 }
             }

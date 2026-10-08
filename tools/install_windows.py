@@ -13,6 +13,7 @@ import tomllib
 ROOT = Path(__file__).resolve().parents[1]
 MARKER = 'pulse-windows-installer-v1'
 UNINSTALL_KEY = r'Software\Microsoft\Windows\CurrentVersion\Uninstall\PulseIsland'
+APP_USER_MODEL_ID = 'NaF1sh.Pulse.FloatingIsland'
 
 
 def locations():
@@ -32,12 +33,73 @@ def manifest_at(root):
 
 def shortcut(paths):
     # Values travel as environment data; user-controlled paths never enter PowerShell source.
+    # The AppUserModelID is required for Windows to grant Pulse access to the notification
+    # listener (WinRT UserNotificationListener); without it on both the shortcut and the
+    # running process, the OS silently refuses the permission request.
     script = ('$s=(New-Object -ComObject WScript.Shell).CreateShortcut($env:PULSE_SHORTCUT);'
               '$s.TargetPath=$env:PULSE_TARGET;$s.WorkingDirectory=$env:PULSE_WORKDIR;'
               '$s.IconLocation=$env:PULSE_ICON;$s.Description="Pulse floating island";$s.Save()')
     env = dict(os.environ, PULSE_SHORTCUT=str(paths['shortcut']),
                PULSE_TARGET=str(paths['root'] / 'venv/Scripts/pulse-island.exe'),
                PULSE_WORKDIR=str(paths['root']), PULSE_ICON=str(paths['root'] / 'pulse.ico'))
+    subprocess.run(['powershell.exe', '-NoProfile', '-NonInteractive', '-Command', script],
+                   env=env, check=True)
+    set_shortcut_aumid(paths['shortcut'], APP_USER_MODEL_ID)
+
+
+def set_shortcut_aumid(path, aumid):
+    """Stamp System.AppUserModel.ID onto the .lnk via IPropertyStore (WScript.Shell cannot set it)."""
+    source = r'''
+using System;
+using System.Runtime.InteropServices;
+using System.Runtime.InteropServices.ComTypes;
+
+public static class PulseAumid {
+    [DllImport("shell32.dll", CharSet = CharSet.Unicode, PreserveSig = true)]
+    static extern int SHGetPropertyStoreFromParsingName(
+        string path, IntPtr pbc, int flags, ref Guid iid, out IPropertyStore store);
+
+    [ComImport, Guid("886D8EEB-8CF2-4446-8D02-CDBA1DBDCF99"),
+     InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    interface IPropertyStore {
+        void GetCount(out uint count);
+        void GetAt(uint index, out PROPERTYKEY key);
+        void GetValue(ref PROPERTYKEY key, out PROPVARIANT value);
+        void SetValue(ref PROPERTYKEY key, ref PROPVARIANT value);
+        void Commit();
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    struct PROPERTYKEY { public Guid fmtid; public int pid; }
+
+    [StructLayout(LayoutKind.Sequential)]
+    struct PROPVARIANT {
+        public ushort vt; public ushort r1; public ushort r2; public ushort r3;
+        public IntPtr p; public int extra;
+    }
+
+    public static void Set(string path, string aumid) {
+        var iid = typeof(IPropertyStore).GUID;
+        const int GPS_READWRITE = 2;
+        IPropertyStore store;
+        int hr = SHGetPropertyStoreFromParsingName(path, IntPtr.Zero, GPS_READWRITE, ref iid, out store);
+        if (hr != 0) throw new COMException("SHGetPropertyStoreFromParsingName failed", hr);
+        var key = new PROPERTYKEY { fmtid = new Guid("9F4C2855-9F79-4B39-A8D0-E1D42DE1D5F3"), pid = 5 };
+        var value = new PROPVARIANT { vt = 31 /* VT_LPWSTR */, p = Marshal.StringToCoTaskMemUni(aumid) };
+        try {
+            store.SetValue(ref key, ref value);
+            store.Commit();
+        } finally {
+            Marshal.FreeCoTaskMem(value.p);
+        }
+    }
+}
+'''
+    script = ('Add-Type -TypeDefinition $env:PULSE_AUMID_SOURCE -Language CSharp;'
+               '[PulseAumid]::Set($env:PULSE_SHORTCUT, $env:PULSE_AUMID)')
+    # SHGetPropertyStoreFromParsingName requires native backslash separators.
+    env = dict(os.environ, PULSE_SHORTCUT=str(path).replace('/', '\\'),
+               PULSE_AUMID=aumid, PULSE_AUMID_SOURCE=source)
     subprocess.run(['powershell.exe', '-NoProfile', '-NonInteractive', '-Command', script],
                    env=env, check=True)
 

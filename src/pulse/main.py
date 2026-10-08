@@ -63,8 +63,10 @@ def main(argv=None):
     if args.doctor:
         from pulse.diagnostics import report
         return report()
-    if is_windows() and (args.observe or args.volume):
-        parser.error('Desktop notification and volume sources are Linux-only in this preview. On Windows, launch Pulse without these flags for the island and task events.')
+    if is_windows() and args.volume:
+        parser.error('Volume sources are Linux-only in this preview.')
+    if is_windows() and args.observe:
+        parser.error('--observe is Linux-only; Windows notifications are captured automatically.')
     if args.backend == 'windows' and not is_windows():
         parser.error('--backend windows requires Windows')
     if is_windows() and args.backend in ('xcb', 'layer-shell'):
@@ -143,6 +145,9 @@ def main(argv=None):
         os.environ.pop("QT_WAYLAND_SHELL_INTEGRATION", None)
     from PySide6.QtGui import QGuiApplication
     from PySide6.QtQml import QQmlApplicationEngine
+    if is_windows():
+        from pulse.platforms import set_app_user_model_id
+        set_app_user_model_id()
     app = QGuiApplication([sys.argv[0]])
     app.setApplicationName("Pulse")
     app.setDesktopFileName("io.github.NaF1sh.Pulse")
@@ -241,7 +246,7 @@ def main(argv=None):
                               else 'Not saved in this session')
     preferences.source_status('Window system', f'{backend} · Qt {qVersion()}')
     if is_windows():
-        preferences.source_status('Desktop integrations', 'Windows preview: task events, agents, pets, backgrounds and timers. Windows music uses system media sessions. Notification capture and volume are not implemented yet.')
+        preferences.source_status('Desktop integrations', 'Windows preview: task events, agents, pets, backgrounds and timers. Windows music uses system media sessions and notifications use the Windows notification listener. Volume is not implemented yet.')
     live_sources = []
     music_enabled = args.music if args.music is not None else (args.observe or (is_windows() and not args.demo))
     volume_enabled = args.volume if args.volume is not None else args.observe
@@ -261,6 +266,14 @@ def main(argv=None):
         audio_source = Audio(app)
         audio_source.notification.connect(controller.submit_system)
         live_sources.append(('Volume', audio_source))
+    if is_windows() and not args.demo:
+        from pulse.sources.windows_notifications import WindowsNotifications
+        notifications_source = WindowsNotifications(app)
+        notifications_source.notification.connect(controller.submit)
+        controller.set_interactions(notifications_source)
+        notifications_source.failed.connect(lambda text: print(f"Pulse: notification action failed: {text}", flush=True))
+        notifications_source.succeeded.connect(lambda nid: print(f"Pulse: notification action succeeded for {nid}", flush=True))
+        live_sources.append(('Notifications', notifications_source))
     for name, live_source in live_sources:
         preferences.source_status(name, 'Connecting…')
         live_source.status.connect(lambda text, label=name: preferences.source_status(label, text))

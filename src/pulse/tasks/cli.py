@@ -38,6 +38,8 @@ def main(argv):
     sub.add_parser('list', help='list tasks as JSON')
     dismiss = sub.add_parser('dismiss', help='hide an alert without approving or stopping its task')
     dismiss.add_argument('id')
+    remove = sub.add_parser('remove', help='delete a task record regardless of its state')
+    remove.add_argument('id')
     sub.add_parser('clear-finished', help='delete completed, failed and cancelled task records')
     args = parser.parse_args(argv[1:])
     if args.operation == 'claude-hook':
@@ -53,6 +55,8 @@ def main(argv):
             print(json.dumps(store.list(), ensure_ascii=False))
         elif args.operation == 'dismiss':
             store.dismiss(args.id)
+        elif args.operation == 'remove':
+            store.remove(args.id)
         else:
             store.clear_finished()
         return 0

@@ -73,7 +73,7 @@ class NotificationDecoder:
         if (type(replaces_id) is not int or replaces_id < 0
                 or type(timeout) is not int or not isinstance(hints, dict)):
             return None
-        local_id = self.server_ids.get(replaces_id) if replaces_id else None
+        local_id = self.server_ids.pop(replaces_id, None) if replaces_id else None
         if local_id is None:
             local_id = self.next_id
             self.next_id += 1

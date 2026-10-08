@@ -17,6 +17,9 @@ dependencies = [
     "winrt-Windows.Media>=3.2,<4; sys_platform == 'win32'",
     "winrt-Windows.Media.Control>=3.2,<4; sys_platform == 'win32'",
     "winrt-Windows.Storage.Streams>=3.2,<4; sys_platform == 'win32'",
+    "winrt-Windows.UI.Notifications>=3.2,<4; sys_platform == 'win32'",
+    "winrt-Windows.UI.Notifications.Management>=3.2,<4; sys_platform == 'win32'",
+    "winrt-Windows.ApplicationModel>=3.2,<4; sys_platform == 'win32'",
 ]
 [project.optional-dependencies]
 dev = ["pytest>=8", "pytest-qt>=4"]

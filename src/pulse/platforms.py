@@ -4,8 +4,18 @@ from pathlib import Path
 import sys
 
 
+APP_USER_MODEL_ID = 'NaF1sh.Pulse.FloatingIsland'
+
+
 def is_windows():
     return sys.platform == 'win32'
+
+
+def set_app_user_model_id():
+    """Required for Windows to grant the notification listener permission to this process;
+    must match the AppUserModelID stamped on the Start Menu shortcut by the installer."""
+    import ctypes
+    ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(APP_USER_MODEL_ID)
 
 
 def config_dir():

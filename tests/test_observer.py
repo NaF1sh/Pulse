@@ -41,12 +41,22 @@ def test_replies_correlate_replacements_and_close_events():
     assert decoder.decode(reply()) is None
     updated = decoder.decode(call(cookie=8, replaces=42))
     assert first.id == updated.id
-    decoder.decode(reply(cookie=8))
+    # The replacement evicts the old server_id (42) immediately so that a stale
+    # NotificationClosed for the old slot does not prematurely close the live card.
+    assert 42 not in decoder.server_ids
+    stale_close = decoder.decode({"type": "signal", "interface": "org.freedesktop.Notifications",
+                                  "member": "NotificationClosed",
+                                  "payload": {"type": "uu", "data": [42, 2]}})
+    assert stale_close is None  # old server_id no longer tracked; card stays open
+    # The reply for the replacement call maps the new server_id (43) to the same local_id.
+    decoder.decode(reply(cookie=8, server_id=43))
+    assert decoder.server_ids == {43: first.id}
+    # Now a close for the new server_id correctly closes the card.
     closed = decoder.decode({"type": "signal", "interface": "org.freedesktop.Notifications",
                              "member": "NotificationClosed",
-                             "payload": {"type": "uu", "data": [42, 2]}})
+                             "payload": {"type": "uu", "data": [43, 2]}})
     assert closed == first.id
-    assert 42 not in decoder.server_ids
+    assert 43 not in decoder.server_ids
 
 
 def test_same_serial_from_different_clients_does_not_collide():

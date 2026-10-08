@@ -37,8 +37,9 @@ class TaskStore:
         self.path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
         fd = os.open(self.path, os.O_CREAT | os.O_RDWR, 0o600)
         os.close(fd)
-        self.connection = sqlite3.connect(self.path, timeout=.2)
+        self.connection = sqlite3.connect(self.path, timeout=1)
         self.connection.row_factory = sqlite3.Row
+        self.connection.execute('PRAGMA journal_mode=WAL')
         self.clock = clock
         self.limit = limit
         with self.connection:
@@ -94,6 +95,10 @@ class TaskStore:
     def clear_finished(self):
         with self.connection:
             self.connection.execute("DELETE FROM tasks WHERE state IN ('done','failed','cancelled')")
+
+    def remove(self, task_id):
+        with self.connection:
+            self.connection.execute('DELETE FROM tasks WHERE id=?', (task_id,))
 
     def close(self):
         self.connection.close()

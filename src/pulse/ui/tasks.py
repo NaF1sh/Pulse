@@ -119,6 +119,16 @@ class Tasks(QObject):
                 self._error = 'Could not dismiss this alert. Try again.'
                 self.changed.emit()
 
+    @Slot(str)
+    def remove(self, task_id):
+        if self.store:
+            try:
+                self.store.remove(task_id)
+                self.poll()
+            except sqlite3.Error:
+                self._error = 'Could not remove this task. Try again.'
+                self.changed.emit()
+
     @Slot()
     def clearFinished(self):
         if self.store:
