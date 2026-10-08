@@ -20,7 +20,7 @@ def main():
         if len(folders) != 1 or not folders[0].is_dir():
             raise ValueError('Expected one project directory in the source distribution.')
         source = folders[0]
-        for required in ['install-windows.cmd', 'tools/install_windows.py', 'assets/pulse.ico', 'pyproject.toml']:
+        for required in ['install-windows.cmd', 'uninstall-windows.cmd', 'tools/install_windows.py', 'assets/pulse.ico', 'pyproject.toml']:
             if not (source / required).is_file():
                 raise ValueError(f'Missing installer file: {required}')
         args.output.parent.mkdir(parents=True, exist_ok=True)

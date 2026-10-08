@@ -1,4 +1,4 @@
-include install.sh install-windows.cmd run.sh config.example.toml CONTRIBUTING.md
+include install.sh install-windows.cmd uninstall-windows.cmd run.sh config.example.toml CONTRIBUTING.md
 recursive-include assets *.svg *.ico
 recursive-include tools *.py
 recursive-include docs *.md *.png *.gif *.txt

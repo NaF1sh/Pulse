@@ -104,13 +104,21 @@ Local task result paths work the same way. URLs and supported documents open onl
 Storage uses your Windows user profile and its access controls. Unix mode bits are not a
 Windows ACL guarantee. Explicit XDG overrides are also supported for isolated testing.
 
-Close Pulse, obtain the new source bundle, and rerun the installer to update. To uninstall:
+Right-click the island, open Settings, and choose **Quit Pulse** before updating or
+uninstalling. Closing the notification bar only dismisses the card; it does not exit Pulse.
+Obtain the new source bundle and rerun the installer to update.
+
+New installations appear in **Windows Settings → Apps → Installed apps → Pulse → Uninstall**.
+The installed uninstaller works even after deleting the downloaded ZIP/folder.
+For an older installation without an Installed Apps entry, extract the latest download and
+double-click **uninstall-windows.cmd**; you do not need to reinstall first. Or run:
 
 ```powershell
 py -3 tools/install_windows.py --uninstall
 ```
 
-Uninstall removes the installer-owned app environment and unchanged shortcut, while keeping
+Uninstall checks for running Pulse processes before deleting files. It removes the
+installer-owned app environment, its Installed Apps entry, and unchanged shortcut, while keeping
 preferences, images, and task data. `--dry-run` prints paths without changing anything.
 
 ## Validation and remaining checks

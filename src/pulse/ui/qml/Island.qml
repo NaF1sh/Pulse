@@ -50,6 +50,15 @@ Window {
         contentVisible = false
         swapTimer.restart()
     }
+    function dismissDisplayed() {
+        // Keep the clicked card: collapsing the drawer can synchronously refresh it.
+        const card = displayed
+        tasksExpanded = false
+        expanded = false
+        if (card.status === "Focus") pulseController.focus.stop()
+        else if (card.status === "Task") pulseController.tasks.dismiss(card.taskId)
+        else pulseController.close(card.id)
+    }
     Connections {
         target: pulseController
         function onChanged() {
@@ -322,8 +331,9 @@ Window {
             visible: root.tasksExpanded; tasks: pulseController.tasks
         }
         Rectangle {
-            anchors.right: parent.right; anchors.rightMargin: 7; y: 6
-            width: 20; height: 20; radius: 10
+            objectName: "dismissNotification"
+            anchors.right: parent.right; anchors.rightMargin: 3; y: 2
+            width: 28; height: 28; radius: 14
             visible: root.open && !root.mediaShown && !root.levelShown
             opacity: root.cardOpacity
             color: dismissMouse.containsMouse ? root.barColors.border : "transparent"
@@ -334,7 +344,7 @@ Window {
                 ToolTip.visible: containsMouse
                 ToolTip.delay: 650
                 ToolTip.text: root.displayed.status === "Focus" ? "End focus session" : "Dismiss"
-                onClicked: { if (root.tasksExpanded && root.displayed.id === -1) root.tasksExpanded = false; else if (root.displayed.status === "Focus") pulseController.focus.stop(); else if (root.displayed.status === "Task") pulseController.tasks.dismiss(root.displayed.taskId); else pulseController.close(root.displayed.id) }
+                onClicked: root.dismissDisplayed()
             }
         }
         Flickable {
